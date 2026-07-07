@@ -1,0 +1,77 @@
+spring:
+  application:
+    name: CVgen
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope:
+              - openid
+              - profile
+              - email
+          github:
+            client-id: ${GITHUB_CLIENT_ID:}
+            client-secret: ${GITHUB_CLIENT_SECRET:}
+            scope:
+              - read:user
+              - user:email
+          linkedin:
+            provider: linkedin
+            client-id: ${LINKEDIN_CLIENT_ID:}
+            client-secret: ${LINKEDIN_CLIENT_SECRET:}
+            scope:
+              - openid
+              - profile
+              - email
+        provider:
+          linkedin:
+            authorization-uri: ${LINKEDIN_AUTHORIZATION_URI:https://www.linkedin.com/oauth/v2/authorization}
+            token-uri: ${LINKEDIN_TOKEN_URI:https://www.linkedin.com/oauth/v2/accessToken}
+            user-info-uri: ${LINKEDIN_USER_INFO_URI:https://api.linkedin.com/v2/userinfo}
+            user-name-attribute: sub
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:cvgen-local-development-secret-cvgen-local-development-secret-2026}
+      issuer: ${JWT_ISSUER:cvgen}
+      expiration: ${JWT_EXPIRATION:PT2H}
+      clock-skew: ${JWT_CLOCK_SKEW:PT2M}
+    oauth2:
+      redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/redirect}
+      success-redirect-uri: ${OAUTH2_SUCCESS_REDIRECT_URI:http://localhost:3000/auth/success}
+      failure-redirect-uri: ${OAUTH2_FAILURE_REDIRECT_URI:http://localhost:3000/auth/failure}
+      authorized-redirect-uris:
+        - ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/redirect}
+        - ${OAUTH2_SUCCESS_REDIRECT_URI:http://localhost:3000/auth/success}
+    cors:
+      allowed-origins:
+        - ${CORS_ALLOWED_ORIGIN_1:http://localhost:3000}
+        - ${CORS_ALLOWED_ORIGIN_2:http://127.0.0.1:3000}
+      allowed-methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      allowed-headers:
+        - Authorization
+        - Cache-Control
+        - Content-Type
+        - X-Requested-With
+      exposed-headers:
+        - Authorization
+        - Set-Cookie
+      allow-credentials: true
+    public-paths:
+      - /
+      - /error
+      - /favicon.ico
+      - /oauth2/**
+      - /login/oauth2/**
+      - /swagger-ui/**
+      - /v3/api-docs/**
