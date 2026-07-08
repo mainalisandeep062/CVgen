@@ -16,9 +16,17 @@ import java.util.Optional;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
 	private final JwtTokenProvider jwtTokenProvider;
+	private final String bearerPrefix;
+	private final String accessTokenCookieName;
 
-	public JwtAuthFilter(JwtTokenProvider jwtTokenProvider) {
+	public JwtAuthFilter(
+			JwtTokenProvider jwtTokenProvider,
+			String bearerPrefix,
+			String accessTokenCookieName
+	) {
 		this.jwtTokenProvider = jwtTokenProvider;
+		this.bearerPrefix = bearerPrefix;
+		this.accessTokenCookieName = accessTokenCookieName;
 	}
 
 	@Override
@@ -33,14 +41,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 	private String resolveToken(HttpServletRequest request) {
 		String authorizationHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-		if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-			return authorizationHeader.substring(7).trim();
+		if (authorizationHeader != null && authorizationHeader.startsWith(bearerPrefix)) {
+			return authorizationHeader.substring(bearerPrefix.length()).trim();
 		}
 
 		return Optional.ofNullable(request.getCookies())
 				.stream()
 				.flatMap(Arrays::stream)
-				.filter(cookie -> cookie != null && "cvgen_access_token".equals(cookie.getName()))
+				.filter(cookie -> cookie != null && accessTokenCookieName.equals(cookie.getName()))
 				.map(Cookie::getValue)
 				.filter(value -> value != null && !value.isBlank())
 				.findFirst()

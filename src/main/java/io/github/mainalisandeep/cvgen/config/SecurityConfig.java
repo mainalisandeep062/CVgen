@@ -6,6 +6,7 @@ import io.github.mainalisandeep.cvgen.security.oauth2.OAuth2AuthenticationFailur
 import io.github.mainalisandeep.cvgen.security.oauth2.OAuth2AuthenticationSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -21,6 +22,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -30,17 +32,32 @@ public class SecurityConfig {
 	private final CustomOAuth2UserService customOAuth2UserService;
 	private final OAuth2AuthenticationSuccessHandler successHandler;
 	private final OAuth2AuthenticationFailureHandler failureHandler;
+	private final String logoutUrl;
+	private final String unauthorizedMessage;
+	private final String forbiddenMessage;
+	private final String cookieName;
+	private final String bearerPrefix;
 
 	public SecurityConfig(
 			SecurityProperties securityProperties,
 			CustomOAuth2UserService customOAuth2UserService,
 			OAuth2AuthenticationSuccessHandler successHandler,
-			OAuth2AuthenticationFailureHandler failureHandler
+			OAuth2AuthenticationFailureHandler failureHandler,
+			@Value("${app.security.logout-url}") String logoutUrl,
+			@Value("${app.security.messages.unauthorized}") String unauthorizedMessage,
+			@Value("${app.security.messages.forbidden}") String forbiddenMessage,
+			@Value("${app.security.oauth2.access-token-cookie-name}") String cookieName,
+			@Value("${app.security.oauth2.bearer-prefix}") String bearerPrefix
 	) {
 		this.securityProperties = securityProperties;
 		this.customOAuth2UserService = customOAuth2UserService;
 		this.successHandler = successHandler;
 		this.failureHandler = failureHandler;
+		this.logoutUrl = logoutUrl;
+		this.unauthorizedMessage = unauthorizedMessage;
+		this.forbiddenMessage = forbiddenMessage;
+		this.cookieName = cookieName;
+		this.bearerPrefix = bearerPrefix;
 	}
 
 	@Bean
@@ -60,15 +77,15 @@ public class SecurityConfig {
 						.failureHandler(failureHandler)
 				)
 				.logout(logout -> logout
-						.logoutUrl("/logout")
-						.deleteCookies("cvgen_access_token")
+						.logoutUrl(logoutUrl)
+						.deleteCookies(cookieName)
 						.invalidateHttpSession(true)
 						.clearAuthentication(true)
 						.logoutSuccessUrl(securityProperties.getOauth2().getSuccessRedirectUri())
 				)
 				.exceptionHandling(exceptionHandling -> exceptionHandling
-						.authenticationEntryPoint((request, response, authException) -> response.sendError(HttpStatus.UNAUTHORIZED.value(), "Unauthorized"))
-						.accessDeniedHandler((request, response, accessDeniedException) -> response.sendError(HttpStatus.FORBIDDEN.value(), "Forbidden"))
+						.authenticationEntryPoint((request, response, authException) -> response.sendError(HttpStatus.UNAUTHORIZED.value(), unauthorizedMessage))
+						.accessDeniedHandler((request, response, accessDeniedException) -> response.sendError(HttpStatus.FORBIDDEN.value(), forbiddenMessage))
 				)
 				.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 				.httpBasic(AbstractHttpConfigurer::disable)
@@ -79,7 +96,7 @@ public class SecurityConfig {
 
 	@Bean
 	public JwtAuthFilter jwtAuthFilter(io.github.mainalisandeep.cvgen.security.JwtTokenProvider jwtTokenProvider) {
-		return new JwtAuthFilter(jwtTokenProvider);
+		return new JwtAuthFilter(jwtTokenProvider, bearerPrefix, cookieName);
 	}
 
 	@Bean

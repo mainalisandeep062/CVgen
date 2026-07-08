@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -25,21 +24,17 @@ public class SecurityProperties {
     @Valid
     private final Cors cors = new Cors();
 
+    @Valid
+    private final Messages messages = new Messages();
+
+    @Valid
+    private final Async async = new Async();
+
+    @Valid
+    private final Web web = new Web();
+
     @NotEmpty
-    private List<String> publicPaths = new ArrayList<>(List.of(
-            "/",
-            "/error",
-            "/favicon.ico",
-            "/assets/**",
-            "/css/**",
-            "/js/**",
-            "/images/**",
-            "/webjars/**",
-            "/oauth2/**",
-            "/login/oauth2/**",
-            "/swagger-ui/**",
-            "/v3/api-docs/**"
-    ));
+    private List<String> publicPaths;
 
     public Jwt getJwt() {
         return jwt;
@@ -53,6 +48,18 @@ public class SecurityProperties {
         return cors;
     }
 
+    public Messages getMessages() {
+        return messages;
+    }
+
+    public Async getAsync() {
+        return async;
+    }
+
+    public Web getWeb() {
+        return web;
+    }
+
     public List<String> getPublicPaths() {
         return publicPaths;
     }
@@ -64,14 +71,14 @@ public class SecurityProperties {
     public static class Jwt {
 
         @NotBlank
-        private String secret = "cvgen-local-development-secret-cvgen-local-development-secret-2026";
+        private String secret;
 
         @NotBlank
-        private String issuer = "cvgen";
+        private String issuer;
 
-        private Duration expiration = Duration.ofHours(2);
+        private Duration expiration;
 
-        private Duration clockSkew = Duration.ofMinutes(2);
+        private Duration clockSkew;
 
         public String getSecret() {
             return secret;
@@ -109,19 +116,16 @@ public class SecurityProperties {
     public static class OAuth2 {
 
         @NotBlank
-        private String redirectUri = "http://localhost:3000/oauth2/redirect";
+        private String redirectUri;
 
         @NotBlank
-        private String successRedirectUri = "http://localhost:3000/auth/success";
+        private String successRedirectUri;
 
         @NotBlank
-        private String failureRedirectUri = "http://localhost:3000/auth/failure";
+        private String failureRedirectUri;
 
         @NotEmpty
-        private List<String> authorizedRedirectUris = new ArrayList<>(List.of(
-                "http://localhost:3000/oauth2/redirect",
-                "http://localhost:3000/auth/success"
-        ));
+        private List<String> authorizedRedirectUris;
 
         public String getRedirectUri() {
             return redirectUri;
@@ -159,34 +163,16 @@ public class SecurityProperties {
     public static class Cors {
 
         @NotEmpty
-        private List<String> allowedOrigins = new ArrayList<>(List.of(
-                "http://localhost:3000",
-                "http://127.0.0.1:3000"
-        ));
+        private List<String> allowedOrigins;
 
         @NotEmpty
-        private List<String> allowedMethods = new ArrayList<>(List.of(
-                "GET",
-                "POST",
-                "PUT",
-                "PATCH",
-                "DELETE",
-                "OPTIONS"
-        ));
+        private List<String> allowedMethods;
 
         @NotEmpty
-        private List<String> allowedHeaders = new ArrayList<>(List.of(
-                "Authorization",
-                "Cache-Control",
-                "Content-Type",
-                "X-Requested-With"
-        ));
+        private List<String> allowedHeaders;
 
         @NotEmpty
-        private List<String> exposedHeaders = new ArrayList<>(List.of(
-                "Authorization",
-                "Set-Cookie"
-        ));
+        private List<String> exposedHeaders;
 
         private boolean allowCredentials = true;
 
@@ -228,6 +214,88 @@ public class SecurityProperties {
 
         public void setAllowCredentials(boolean allowCredentials) {
             this.allowCredentials = allowCredentials;
+        }
+    }
+
+    public static class Messages {
+
+        @NotBlank
+        private String unauthorized;
+
+        @NotBlank
+        private String forbidden;
+
+        public String getUnauthorized() {
+            return unauthorized;
+        }
+
+        public void setUnauthorized(String unauthorized) {
+            this.unauthorized = unauthorized;
+        }
+
+        public String getForbidden() {
+            return forbidden;
+        }
+
+        public void setForbidden(String forbidden) {
+            this.forbidden = forbidden;
+        }
+    }
+
+    public static class Async {
+
+        private int corePoolSize;
+
+        private int maxPoolSize;
+
+        private int queueCapacity;
+
+        @NotBlank
+        private String threadNamePrefix;
+
+        public int getCorePoolSize() {
+            return corePoolSize;
+        }
+
+        public void setCorePoolSize(int corePoolSize) {
+            this.corePoolSize = corePoolSize;
+        }
+
+        public int getMaxPoolSize() {
+            return maxPoolSize;
+        }
+
+        public void setMaxPoolSize(int maxPoolSize) {
+            this.maxPoolSize = maxPoolSize;
+        }
+
+        public int getQueueCapacity() {
+            return queueCapacity;
+        }
+
+        public void setQueueCapacity(int queueCapacity) {
+            this.queueCapacity = queueCapacity;
+        }
+
+        public String getThreadNamePrefix() {
+            return threadNamePrefix;
+        }
+
+        public void setThreadNamePrefix(String threadNamePrefix) {
+            this.threadNamePrefix = threadNamePrefix;
+        }
+    }
+
+    public static class Web {
+
+        private int assetsCachePeriod;
+
+        public int getAssetsCachePeriod() {
+            return assetsCachePeriod;
+        }
+
+        public void setAssetsCachePeriod(int assetsCachePeriod) {
+            this.assetsCachePeriod = assetsCachePeriod;
         }
     }
 }
