@@ -64,7 +64,7 @@ public class SecurityProperties {
     public static class Jwt {
 
         @NotBlank
-        private String secret = "cvgen-local-development-secret-cvgen-local-development-secret-2026";
+        private String secret;
 
         @NotBlank
         private String issuer = "cvgen";
@@ -184,8 +184,7 @@ public class SecurityProperties {
 
         @NotEmpty
         private List<String> exposedHeaders = new ArrayList<>(List.of(
-                "Authorization",
-                "Set-Cookie"
+                "Authorization"
         ));
 
         private boolean allowCredentials = true;
@@ -231,4 +230,3 @@ public class SecurityProperties {
         }
     }
 }
-
