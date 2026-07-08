@@ -32,11 +32,21 @@ spring:
             token-uri: ${LINKEDIN_TOKEN_URI:https://www.linkedin.com/oauth/v2/accessToken}
             user-info-uri: ${LINKEDIN_USER_INFO_URI:https://api.linkedin.com/v2/userinfo}
             user-name-attribute: sub
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/cvgen}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  liquibase:
+    change-log: classpath:changelog/changelog-master.xml
 
 app:
   security:
     jwt:
-      secret: ${JWT_SECRET:cvgen-local-development-secret-cvgen-local-development-secret-2026}
+      secret: ${JWT_SECRET}
       issuer: ${JWT_ISSUER:cvgen}
       expiration: ${JWT_EXPIRATION:PT2H}
       clock-skew: ${JWT_CLOCK_SKEW:PT2M}
@@ -65,7 +75,6 @@ app:
         - X-Requested-With
       exposed-headers:
         - Authorization
-        - Set-Cookie
       allow-credentials: true
     public-paths:
       - /
