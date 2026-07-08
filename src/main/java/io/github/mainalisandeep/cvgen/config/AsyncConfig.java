@@ -12,12 +12,12 @@ import java.util.concurrent.Executor;
 public class AsyncConfig {
 
 	@Bean(name = "applicationTaskExecutor")
-	public Executor applicationTaskExecutor() {
+	public Executor applicationTaskExecutor(SecurityProperties securityProperties) {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-		executor.setCorePoolSize(Math.max(2, Runtime.getRuntime().availableProcessors()));
-		executor.setMaxPoolSize(Math.max(4, Runtime.getRuntime().availableProcessors() * 2));
-		executor.setQueueCapacity(250);
-		executor.setThreadNamePrefix("cvgen-async-");
+		executor.setCorePoolSize(securityProperties.getAsync().getCorePoolSize());
+		executor.setMaxPoolSize(securityProperties.getAsync().getMaxPoolSize());
+		executor.setQueueCapacity(securityProperties.getAsync().getQueueCapacity());
+		executor.setThreadNamePrefix(securityProperties.getAsync().getThreadNamePrefix());
 		executor.initialize();
 		return executor;
 	}

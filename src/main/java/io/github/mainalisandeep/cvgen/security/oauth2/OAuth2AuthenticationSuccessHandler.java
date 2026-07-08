@@ -6,6 +6,7 @@ import io.github.mainalisandeep.cvgen.security.UserPrinciple;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
@@ -21,20 +22,30 @@ import java.util.List;
 @Component
 public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
-	private static final String ACCESS_TOKEN_COOKIE = "cvgen_access_token";
-
 	private final JwtTokenProvider jwtTokenProvider;
 	private final SecurityProperties securityProperties;
 	private final OAuth2ExchangeCodeStore exchangeCodeStore;
+	private final String accessTokenCookieName;
+	private final String bearerPrefix;
+	private final String secureSameSite;
+	private final String insecureSameSite;
 
 	public OAuth2AuthenticationSuccessHandler(
 			JwtTokenProvider jwtTokenProvider,
 			SecurityProperties securityProperties,
-			OAuth2ExchangeCodeStore exchangeCodeStore
+			OAuth2ExchangeCodeStore exchangeCodeStore,
+			@Value("${app.security.oauth2.access-token-cookie-name}") String accessTokenCookieName,
+			@Value("${app.security.oauth2.bearer-prefix}") String bearerPrefix,
+			@Value("${app.security.oauth2.secure-same-site}") String secureSameSite,
+			@Value("${app.security.oauth2.insecure-same-site}") String insecureSameSite
 	) {
 		this.jwtTokenProvider = jwtTokenProvider;
 		this.securityProperties = securityProperties;
 		this.exchangeCodeStore = exchangeCodeStore;
+		this.accessTokenCookieName = accessTokenCookieName;
+		this.bearerPrefix = bearerPrefix;
+		this.secureSameSite = secureSameSite;
+		this.insecureSameSite = insecureSameSite;
 	}
 
 	@Override
@@ -45,16 +56,16 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 		Duration expiration = securityProperties.getJwt().getExpiration();
 		exchangeCodeStore.storeIssuedToken(principal.getUsername(), jwt, expiration);
 
-		ResponseCookie cookie = ResponseCookie.from(ACCESS_TOKEN_COOKIE, jwt)
+		ResponseCookie cookie = ResponseCookie.from(accessTokenCookieName, jwt)
 				.httpOnly(true)
 				.secure(request.isSecure())
-				.sameSite(request.isSecure() ? "None" : "Lax")
+				.sameSite(request.isSecure() ? secureSameSite : insecureSameSite)
 				.path("/")
 				.maxAge(expiration)
 				.build();
 
 		response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-		response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + jwt);
+		response.setHeader(HttpHeaders.AUTHORIZATION, bearerPrefix + " " + jwt);
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 
 		String redirectUri = resolveRedirectUri();

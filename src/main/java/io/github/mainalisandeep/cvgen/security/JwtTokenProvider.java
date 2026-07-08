@@ -6,6 +6,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -33,9 +34,11 @@ public class JwtTokenProvider {
 
 	private final SecurityProperties securityProperties;
 	private final SecretKey secretKey;
+	private final String defaultRole;
 
-	public JwtTokenProvider(SecurityProperties securityProperties) {
+	public JwtTokenProvider(SecurityProperties securityProperties, @Value("${app.security.oauth2.default-role}") String defaultRole) {
 		this.securityProperties = securityProperties;
+		this.defaultRole = defaultRole;
 		this.secretKey = buildSecretKey(securityProperties.getJwt().getSecret());
 	}
 
@@ -126,7 +129,7 @@ public class JwtTokenProvider {
 		}
 
 		if (authorityNames.isEmpty()) {
-			authorityNames.add("ROLE_USER");
+			authorityNames.add(defaultRole);
 		}
 
 		List<GrantedAuthority> authorities = new ArrayList<>();

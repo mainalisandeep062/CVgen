@@ -1,5 +1,6 @@
 package io.github.mainalisandeep.cvgen.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -28,7 +29,7 @@ public class WebConfig implements WebMvcConfigurer {
 	public void addResourceHandlers(ResourceHandlerRegistry registry) {
 		registry.addResourceHandler("/assets/**")
 				.addResourceLocations("classpath:/static/")
-				.setCachePeriod(3600);
+				.setCachePeriod(securityProperties.getWeb().getAssetsCachePeriod());
 		registry.addResourceHandler("/favicon.ico")
 				.addResourceLocations("classpath:/static/");
 	}

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: CVgen
+    name: ${APP_NAME}
   security:
     oauth2:
       client:
@@ -8,70 +8,61 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID:}
             client-secret: ${GOOGLE_CLIENT_SECRET:}
-            scope:
-              - openid
-              - profile
-              - email
+            scope: ${GOOGLE_OAUTH_SCOPES}
           github:
             client-id: ${GITHUB_CLIENT_ID:}
             client-secret: ${GITHUB_CLIENT_SECRET:}
-            scope:
-              - read:user
-              - user:email
+            scope: ${GITHUB_OAUTH_SCOPES}
           linkedin:
             provider: linkedin
             client-id: ${LINKEDIN_CLIENT_ID:}
             client-secret: ${LINKEDIN_CLIENT_SECRET:}
-            scope:
-              - openid
-              - profile
-              - email
+            scope: ${LINKEDIN_OAUTH_SCOPES}
         provider:
           linkedin:
-            authorization-uri: ${LINKEDIN_AUTHORIZATION_URI:https://www.linkedin.com/oauth/v2/authorization}
-            token-uri: ${LINKEDIN_TOKEN_URI:https://www.linkedin.com/oauth/v2/accessToken}
-            user-info-uri: ${LINKEDIN_USER_INFO_URI:https://api.linkedin.com/v2/userinfo}
-            user-name-attribute: sub
+            authorization-uri: ${LINKEDIN_AUTHORIZATION_URI}
+            token-uri: ${LINKEDIN_TOKEN_URI}
+            user-info-uri: ${LINKEDIN_USER_INFO_URI}
+            user-name-attribute: ${LINKEDIN_USER_NAME_ATTRIBUTE}
 
 app:
   security:
     jwt:
-      secret: ${JWT_SECRET:cvgen-local-development-secret-cvgen-local-development-secret-2026}
-      issuer: ${JWT_ISSUER:cvgen}
-      expiration: ${JWT_EXPIRATION:PT2H}
-      clock-skew: ${JWT_CLOCK_SKEW:PT2M}
+      secret: ${JWT_SECRET}
+      issuer: ${JWT_ISSUER}
+      expiration: ${JWT_EXPIRATION}
+      clock-skew: ${JWT_CLOCK_SKEW}
     oauth2:
-      redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/redirect}
-      success-redirect-uri: ${OAUTH2_SUCCESS_REDIRECT_URI:http://localhost:3000/auth/success}
-      failure-redirect-uri: ${OAUTH2_FAILURE_REDIRECT_URI:http://localhost:3000/auth/failure}
-      authorized-redirect-uris:
-        - ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/redirect}
-        - ${OAUTH2_SUCCESS_REDIRECT_URI:http://localhost:3000/auth/success}
+      redirect-uri: ${OAUTH2_REDIRECT_URI}
+      success-redirect-uri: ${OAUTH2_SUCCESS_REDIRECT_URI}
+      failure-redirect-uri: ${OAUTH2_FAILURE_REDIRECT_URI}
+      authorized-redirect-uris: ${OAUTH2_AUTHORIZED_REDIRECT_URIS}
+      access-token-cookie-name: ${OAUTH2_ACCESS_TOKEN_COOKIE_NAME}
+      bearer-prefix: ${OAUTH2_BEARER_PREFIX}
+      default-role: ${OAUTH2_DEFAULT_ROLE}
+      google-provider-id: ${OAUTH2_GOOGLE_PROVIDER_ID}
+      github-provider-id: ${OAUTH2_GITHUB_PROVIDER_ID}
+      linkedin-provider-id: ${OAUTH2_LINKEDIN_PROVIDER_ID}
+      secure-same-site: ${OAUTH2_SECURE_SAMESITE}
+      insecure-same-site: ${OAUTH2_INSECURE_SAMESITE}
+      unsupported-provider-error-code: ${OAUTH2_UNSUPPORTED_PROVIDER_ERROR_CODE}
+      failure-error-code: ${OAUTH2_FAILURE_ERROR_CODE}
+    messages:
+      unauthorized: ${APP_SECURITY_UNAUTHORIZED_MESSAGE}
+      forbidden: ${APP_SECURITY_FORBIDDEN_MESSAGE}
     cors:
-      allowed-origins:
-        - ${CORS_ALLOWED_ORIGIN_1:http://localhost:3000}
-        - ${CORS_ALLOWED_ORIGIN_2:http://127.0.0.1:3000}
-      allowed-methods:
-        - GET
-        - POST
-        - PUT
-        - PATCH
-        - DELETE
-        - OPTIONS
-      allowed-headers:
-        - Authorization
-        - Cache-Control
-        - Content-Type
-        - X-Requested-With
-      exposed-headers:
-        - Authorization
-        - Set-Cookie
-      allow-credentials: true
+      allowed-origins: ${CORS_ALLOWED_ORIGINS}
+      allowed-methods: ${CORS_ALLOWED_METHODS}
+      allowed-headers: ${CORS_ALLOWED_HEADERS}
+      exposed-headers: ${CORS_EXPOSED_HEADERS}
+      allow-credentials: ${CORS_ALLOW_CREDENTIALS}
+    logout-url: ${APP_SECURITY_LOGOUT_URL}
     public-paths:
-      - /
-      - /error
-      - /favicon.ico
-      - /oauth2/**
-      - /login/oauth2/**
-      - /swagger-ui/**
-      - /v3/api-docs/**
+      - ${APP_SECURITY_PUBLIC_PATHS}
+  async:
+    core-pool-size: ${ASYNC_CORE_POOL_SIZE}
+    max-pool-size: ${ASYNC_MAX_POOL_SIZE}
+    queue-capacity: ${ASYNC_QUEUE_CAPACITY}
+    thread-name-prefix: ${ASYNC_THREAD_NAME_PREFIX}
+  web:
+    assets-cache-period: ${WEB_ASSETS_CACHE_PERIOD}

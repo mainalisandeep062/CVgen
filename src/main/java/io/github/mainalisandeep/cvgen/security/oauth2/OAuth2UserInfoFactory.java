@@ -1,31 +1,52 @@
 package io.github.mainalisandeep.cvgen.security.oauth2;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+@Component
 public final class OAuth2UserInfoFactory {
+	private final String googleProviderId;
+	private final String githubProviderId;
+	private final String linkedinProviderId;
+	private final String unsupportedProviderErrorCode;
 
-	private OAuth2UserInfoFactory() {
+	public OAuth2UserInfoFactory(
+			@Value("${app.security.oauth2.google-provider-id}") String googleProviderId,
+			@Value("${app.security.oauth2.github-provider-id}") String githubProviderId,
+			@Value("${app.security.oauth2.linkedin-provider-id}") String linkedinProviderId,
+			@Value("${app.security.oauth2.unsupported-provider-error-code}") String unsupportedProviderErrorCode
+	) {
+		this.googleProviderId = googleProviderId;
+		this.githubProviderId = githubProviderId;
+		this.linkedinProviderId = linkedinProviderId;
+		this.unsupportedProviderErrorCode = unsupportedProviderErrorCode;
 	}
 
-	public static OAuth2UserInfo getUserInfo(String registrationId, Map<String, Object> attributes) {
+	public OAuth2UserInfo getUserInfo(String registrationId, Map<String, Object> attributes) {
 		if (registrationId == null) {
 			throw unsupportedProvider("null");
 		}
 
-		return switch (registrationId.toLowerCase()) {
-			case "google" -> new GoogleOAuth2UserInfo(attributes);
-			case "github" -> new GithubOAuth2UserInfo(attributes);
-			case "linkedin" -> new LinkedinOAuth2UserInfo(attributes);
-			default -> throw unsupportedProvider(registrationId);
-		};
+		String normalized = registrationId.trim();
+		if (normalized.equalsIgnoreCase(googleProviderId)) {
+			return new GoogleOAuth2UserInfo(attributes);
+		}
+		if (normalized.equalsIgnoreCase(githubProviderId)) {
+			return new GithubOAuth2UserInfo(attributes);
+		}
+		if (normalized.equalsIgnoreCase(linkedinProviderId)) {
+			return new LinkedinOAuth2UserInfo(attributes);
+		}
+		throw unsupportedProvider(registrationId);
 	}
 
-	private static OAuth2AuthenticationException unsupportedProvider(String registrationId) {
+	private OAuth2AuthenticationException unsupportedProvider(String registrationId) {
 		return new OAuth2AuthenticationException(
-				new OAuth2Error("unsupported_oauth2_provider"),
+				new OAuth2Error(unsupportedProviderErrorCode),
 				"Unsupported OAuth2 provider: " + registrationId
 		);
 	}
