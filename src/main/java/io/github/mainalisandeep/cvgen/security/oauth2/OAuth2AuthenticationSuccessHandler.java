@@ -1,84 +1,79 @@
 package io.github.mainalisandeep.cvgen.security.oauth2;
 
 import io.github.mainalisandeep.cvgen.config.SecurityProperties;
-import io.github.mainalisandeep.cvgen.security.JwtTokenProvider;
-import io.github.mainalisandeep.cvgen.security.UserPrinciple;
+import io.github.mainalisandeep.cvgen.security.UserPrincipal;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
-	private static final String ACCESS_TOKEN_COOKIE = "cvgen_access_token";
+    private static final Duration EXCHANGE_CODE_TTL = Duration.ofSeconds(60);
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-	private final JwtTokenProvider jwtTokenProvider;
-	private final SecurityProperties securityProperties;
-	private final OAuth2ExchangeCodeStore exchangeCodeStore;
+    private final SecurityProperties securityProperties;
+    private final OAuth2ExchangeCodeStore exchangeCodeStore;
 
-	public OAuth2AuthenticationSuccessHandler(
-			JwtTokenProvider jwtTokenProvider,
-			SecurityProperties securityProperties,
-			OAuth2ExchangeCodeStore exchangeCodeStore
-	) {
-		this.jwtTokenProvider = jwtTokenProvider;
-		this.securityProperties = securityProperties;
-		this.exchangeCodeStore = exchangeCodeStore;
-	}
+    public OAuth2AuthenticationSuccessHandler(
+            SecurityProperties securityProperties,
+            OAuth2ExchangeCodeStore exchangeCodeStore
+    ) {
+        this.securityProperties = securityProperties;
+        this.exchangeCodeStore = exchangeCodeStore;
+    }
 
-	@Override
-	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-		UserPrinciple principal = extractPrincipal(authentication);
-		String jwt = jwtTokenProvider.generateToken(principal);
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+        UserPrincipal principal = extractPrincipal(authentication);
 
-		Duration expiration = securityProperties.getJwt().getExpiration();
-		exchangeCodeStore.storeIssuedToken(principal.getUsername(), jwt, expiration);
+        String exchangeCode = generateExchangeCode();
+        exchangeCodeStore.storeExchangeCode(exchangeCode, UUID.fromString(principal.getId()), EXCHANGE_CODE_TTL);
 
-		ResponseCookie cookie = ResponseCookie.from(ACCESS_TOKEN_COOKIE, jwt)
-				.httpOnly(true)
-				.secure(request.isSecure())
-				.sameSite(request.isSecure() ? "None" : "Lax")
-				.path("/")
-				.maxAge(expiration)
-				.build();
+        String redirectUri = UriComponentsBuilder.fromUriString(resolveRedirectUri())
+                .queryParam("code", exchangeCode)
+                .build()
+                .toUriString();
 
-		response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-		response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + jwt);
-		SecurityContextHolder.getContext().setAuthentication(authentication);
+        response.sendRedirect(redirectUri);
+    }
 
-		String redirectUri = resolveRedirectUri();
-		response.sendRedirect(redirectUri);
-	}
+    private UserPrincipal extractPrincipal(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserPrincipal userPrincipal) {
+            return userPrincipal;
+        }
 
-	private UserPrinciple extractPrincipal(Authentication authentication) {
-		Object principal = authentication.getPrincipal();
-		if (principal instanceof UserPrinciple userPrinciple) {
-			return userPrinciple;
-		}
+        throw new IllegalStateException("OAuth2 authentication did not produce a `UserPrincipal` principal");
+    }
 
-		throw new IllegalStateException("OAuth2 authentication did not produce a `UserPrinciple` principal");
-	}
+    private String generateExchangeCode() {
+        byte[] bytes = new byte[32];
+        SECURE_RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
 
-	private String resolveRedirectUri() {
-		List<String> authorizedUris = securityProperties.getOauth2().getAuthorizedRedirectUris();
-		String configured = securityProperties.getOauth2().getSuccessRedirectUri();
-		if (StringUtils.hasText(configured) && authorizedUris.contains(configured)) {
-			return configured;
-		}
-		if (!authorizedUris.isEmpty()) {
-			return authorizedUris.get(0);
-		}
-		return configured;
-	}
+    private String resolveRedirectUri() {
+        List<String> authorizedUris = securityProperties.getOauth2().getAuthorizedRedirectUris();
+        String configured = securityProperties.getOauth2().getSuccessRedirectUri();
+        if (StringUtils.hasText(configured) && authorizedUris.contains(configured)) {
+            return configured;
+        }
+        if (!authorizedUris.isEmpty()) {
+            return authorizedUris.get(0);
+        }
+        return configured;
+    }
 }
