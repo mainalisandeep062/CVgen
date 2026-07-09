@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="001-create-users-table" author="cvgen">
+        <createTable tableName="users">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="password_hash" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="provider" type="VARCHAR(50)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="provider_id" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="users" indexName="idx_users_provider_provider_id" unique="true">
+            <column name="provider"/>
+            <column name="provider_id"/>
+        </createIndex>
+        <sql>
+            CREATE UNIQUE INDEX idx_users_provider_provider_id_not_null ON users(provider, provider_id) WHERE provider IS NOT NULL;
+        </sql>
+        <rollback>
+            <dropTable tableName="users"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
