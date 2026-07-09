@@ -24,6 +24,16 @@ spring:
             token-uri: ${LINKEDIN_TOKEN_URI}
             user-info-uri: ${LINKEDIN_USER_INFO_URI}
             user-name-attribute: ${LINKEDIN_USER_NAME_ATTRIBUTE}
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  liquibase:
+    change-log: classpath:changelog/changelog-master.xml
 
 app:
   security:
