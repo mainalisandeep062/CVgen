@@ -8,15 +8,19 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID:}
             client-secret: ${GOOGLE_CLIENT_SECRET:}
+            authorization-grant-type: authorization_code
             scope: ${GOOGLE_OAUTH_SCOPES}
           github:
             client-id: ${GITHUB_CLIENT_ID:}
             client-secret: ${GITHUB_CLIENT_SECRET:}
+            authorization-grant-type: authorization_code
             scope: ${GITHUB_OAUTH_SCOPES}
           linkedin:
             provider: linkedin
             client-id: ${LINKEDIN_CLIENT_ID:}
             client-secret: ${LINKEDIN_CLIENT_SECRET:}
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/linkedin"    #<--- Spring automatically replaces the placeholder with actual base URL
             scope: ${LINKEDIN_OAUTH_SCOPES}
         provider:
           linkedin:
@@ -67,12 +71,10 @@ app:
       exposed-headers: ${CORS_EXPOSED_HEADERS}
       allow-credentials: ${CORS_ALLOW_CREDENTIALS}
     logout-url: ${APP_SECURITY_LOGOUT_URL}
-    public-paths:
-      - ${APP_SECURITY_PUBLIC_PATHS}
   async:
     core-pool-size: ${ASYNC_CORE_POOL_SIZE}
     max-pool-size: ${ASYNC_MAX_POOL_SIZE}
     queue-capacity: ${ASYNC_QUEUE_CAPACITY}
-    thread-name-prefix: ${ASYNC_THREAD_NAME_PREFIX}
+    thread-name-prefix: ${ASYNC_THREAD_NAME_PREFIX:cvgen-async-}
   web:
     assets-cache-period: ${WEB_ASSETS_CACHE_PERIOD}

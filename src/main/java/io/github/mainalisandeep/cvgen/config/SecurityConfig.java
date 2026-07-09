@@ -1,11 +1,14 @@
 package io.github.mainalisandeep.cvgen.config;
 
+import io.github.mainalisandeep.cvgen.config.constants.MatchersConfig;
 import io.github.mainalisandeep.cvgen.security.JwtAuthFilter;
 import io.github.mainalisandeep.cvgen.security.oauth2.CustomOAuth2UserService;
 import io.github.mainalisandeep.cvgen.security.oauth2.OAuth2AuthenticationFailureHandler;
 import io.github.mainalisandeep.cvgen.security.oauth2.OAuth2AuthenticationSuccessHandler;
+import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -44,14 +47,15 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(authorize -> {
                     authorize.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
-                    authorize.requestMatchers(securityProperties.getPublicPaths().toArray(String[]::new)).permitAll();
+                    authorize.requestMatchers(MatchersConfig.PUBLIC_MATCHERS.toArray(String[]::new)).permitAll();
+                    authorize.requestMatchers(MatchersConfig.SWAGGER_MATCHERS.toArray(String[]::new)).permitAll();
                     authorize.requestMatchers("/api/auth/**").permitAll();
                     authorize.anyRequest().authenticated();
                 })
