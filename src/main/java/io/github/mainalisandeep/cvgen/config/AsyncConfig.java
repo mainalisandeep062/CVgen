@@ -1,5 +1,6 @@
 package io.github.mainalisandeep.cvgen.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -9,16 +10,28 @@ import java.util.concurrent.Executor;
 
 @Configuration
 @EnableAsync
+@RequiredArgsConstructor
 public class AsyncConfig {
 
+	private final SecurityProperties securityProperties;
+
+
 	@Bean(name = "applicationTaskExecutor")
-	public Executor applicationTaskExecutor(SecurityProperties securityProperties) {
-		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-		executor.setCorePoolSize(securityProperties.getAsync().getCorePoolSize());
-		executor.setMaxPoolSize(securityProperties.getAsync().getMaxPoolSize());
-		executor.setQueueCapacity(securityProperties.getAsync().getQueueCapacity());
-		executor.setThreadNamePrefix(securityProperties.getAsync().getThreadNamePrefix());
+	public Executor applicationTaskExecutor() {
+
+		ThreadPoolTaskExecutor executor =
+				new ThreadPoolTaskExecutor();
+
+		SecurityProperties.Async async =
+				securityProperties.getAsync();
+
+		executor.setCorePoolSize(async.getCorePoolSize());
+		executor.setMaxPoolSize(async.getMaxPoolSize());
+		executor.setQueueCapacity(async.getQueueCapacity());
+		executor.setThreadNamePrefix(async.getThreadNamePrefix());
+
 		executor.initialize();
+
 		return executor;
 	}
 }
