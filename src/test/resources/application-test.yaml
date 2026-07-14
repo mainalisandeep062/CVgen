@@ -1,0 +1,53 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  liquibase:
+    change-log: classpath:changelog/changelog-master.xml
+  mail:
+    host: localhost
+    port: 3025
+app:
+  security:
+    jwt:
+      secret: test-secret-key-that-is-at-least-64-characters-long-for-hs512-signing
+      issuer: cvgen-test
+      expiration: PT2H
+      clock-skew: PT2M
+    oauth2:
+      redirect-uri: http://localhost:3000/oauth2/redirect
+      success-redirect-uri: http://localhost:3000/auth/success
+      failure-redirect-uri: http://localhost:3000/auth/failure
+      authorized-redirect-uris: http://localhost:3000/oauth2/redirect,http://localhost:3000/auth/success
+      access-token-cookie-name: cvgen_access_token
+      bearer-prefix: Bearer
+      default-role: ROLE_USER
+      google-provider-id: google
+      github-provider-id: github
+      linkedin-provider-id: linkedin
+      unsupported-provider-error-code: unsupported_oauth2_provider
+      failure-error-code: oauth2_authentication_failed
+      email-unverified-conflict-error-code: email_unverified_conflict
+    messages:
+      unauthorized: Unauthorized
+      forbidden: Forbidden
+    cors:
+      allowed-origins: http://localhost:3000
+      allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+      allowed-headers: Authorization,Cache-Control,Content-Type,X-Requested-With
+      exposed-headers: Authorization
+      allow-credentials: true
+    logout-url: /logout
+  async:
+    core-pool-size: 2
+    max-pool-size: 4
+    queue-capacity: 50
+    thread-name-prefix: cvgen-test-async-
+  web:
+    assets-cache-period: 3600

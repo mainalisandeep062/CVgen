@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="002-user-identities-and-otp" author="cvgen">
+        <!-- Add email_verified to users -->
+        <addColumn tableName="users">
+            <column name="email_verified" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <!-- Create user_identities table -->
+        <createTable tableName="user_identities">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false" references="users(id)" foreignKeyName="fk_user_identities_user_id"/>
+            </column>
+            <column name="provider" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email_at_provider" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="user_identities" indexName="idx_user_identities_provider" unique="true">
+            <column name="provider"/>
+            <column name="provider_id"/>
+        </createIndex>
+
+        <createIndex tableName="user_identities" indexName="idx_user_identities_user_id">
+            <column name="user_id"/>
+        </createIndex>
+
+        <!-- Backfill existing OAuth users into user_identities -->
+        <sql>
+            INSERT INTO user_identities (id, user_id, provider, provider_id, email_at_provider, created_at)
+            SELECT gen_random_uuid(), id, provider, provider_id, email, created_at
+            FROM users WHERE provider IS NOT NULL
+        </sql>
+
+        <!-- Drop old provider columns from users -->
+        <dropIndex tableName="users" indexName="idx_users_provider_provider_id"/>
+        <sql>
+            DROP INDEX IF EXISTS idx_users_provider_provider_id_not_null
+        </sql>
+        <dropColumn tableName="users" columnName="provider"/>
+        <dropColumn tableName="users" columnName="provider_id"/>
+
+        <!-- Create otp_codes table -->
+        <createTable tableName="otp_codes">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="purpose" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="code_hash" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consumed_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true"/>
+            </column>
+            <column name="attempt_count" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="otp_codes" indexName="idx_otp_codes_email_purpose">
+            <column name="email"/>
+            <column name="purpose"/>
+        </createIndex>
+
+        <!-- Create trusted_devices table -->
+        <createTable tableName="trusted_devices">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false" references="users(id)" foreignKeyName="fk_trusted_devices_user_id"/>
+            </column>
+            <column name="token_hash" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_used_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="trusted_devices" indexName="idx_trusted_devices_token_hash" unique="true">
+            <column name="token_hash"/>
+        </createIndex>
+
+        <createIndex tableName="trusted_devices" indexName="idx_trusted_devices_user_id">
+            <column name="user_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="trusted_devices"/>
+            <dropTable tableName="otp_codes"/>
+            <dropTable tableName="user_identities"/>
+            <addColumn tableName="users">
+                <column name="provider" type="VARCHAR(50)">
+                    <constraints nullable="true"/>
+                </column>
+                <column name="provider_id" type="VARCHAR(255)">
+                    <constraints nullable="true"/>
+                </column>
+            </addColumn>
+            <dropColumn tableName="users" columnName="email_verified"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
