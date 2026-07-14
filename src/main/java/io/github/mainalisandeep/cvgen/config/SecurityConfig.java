@@ -3,12 +3,11 @@ package io.github.mainalisandeep.cvgen.config;
 import io.github.mainalisandeep.cvgen.config.constants.MatchersConfig;
 import io.github.mainalisandeep.cvgen.security.JwtAuthFilter;
 import io.github.mainalisandeep.cvgen.security.oauth2.CustomOAuth2UserService;
+import io.github.mainalisandeep.cvgen.security.oauth2.CustomOidcUserService;
 import io.github.mainalisandeep.cvgen.security.oauth2.OAuth2AuthenticationFailureHandler;
 import io.github.mainalisandeep.cvgen.security.oauth2.OAuth2AuthenticationSuccessHandler;
-import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -31,17 +30,20 @@ public class SecurityConfig {
 
     private final SecurityProperties securityProperties;
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final CustomOidcUserService customOidcUserService;
     private final OAuth2AuthenticationSuccessHandler successHandler;
     private final OAuth2AuthenticationFailureHandler failureHandler;
 
     public SecurityConfig(
             SecurityProperties securityProperties,
             CustomOAuth2UserService customOAuth2UserService,
+            CustomOidcUserService customOidcUserService,
             OAuth2AuthenticationSuccessHandler successHandler,
             OAuth2AuthenticationFailureHandler failureHandler
     ) {
         this.securityProperties = securityProperties;
         this.customOAuth2UserService = customOAuth2UserService;
+        this.customOidcUserService = customOidcUserService;
         this.successHandler = successHandler;
         this.failureHandler = failureHandler;
     }
@@ -60,7 +62,10 @@ public class SecurityConfig {
                     authorize.anyRequest().authenticated();
                 })
                 .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService)
+                                .oidcUserService(customOidcUserService)
+                        )
                         .successHandler(successHandler)
                         .failureHandler(failureHandler)
                 )

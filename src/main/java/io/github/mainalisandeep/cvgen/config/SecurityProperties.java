@@ -63,6 +63,18 @@ public class SecurityProperties {
 
         @NotEmpty
         private List<String> authorizedRedirectUris;
+
+        private String googleProviderId;
+
+        private String githubProviderId;
+
+        private String linkedinProviderId;
+
+        private String unsupportedProviderErrorCode;
+
+        private String failureErrorCode;
+
+        private String emailUnverifiedConflictErrorCode;
     }
 
 
