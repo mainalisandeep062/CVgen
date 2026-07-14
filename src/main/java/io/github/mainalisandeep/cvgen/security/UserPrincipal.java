@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public final class UserPrincipal implements UserDetails, OAuth2User, Serializable {
+public final class UserPrincipal implements UserDetails, OAuth2User, IdentifiedPrincipal, Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -76,6 +76,7 @@ public final class UserPrincipal implements UserDetails, OAuth2User, Serializabl
         return new UserPrincipal(id, "local", name, username, email, null, password, authorities, Collections.emptyMap());
     }
 
+    @Override
     public String getId() {
         return id;
     }
