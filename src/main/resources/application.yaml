@@ -20,7 +20,7 @@ spring:
             client-id: ${LINKEDIN_CLIENT_ID:}
             client-secret: ${LINKEDIN_CLIENT_SECRET:}
             authorization-grant-type: authorization_code
-            redirect-uri: "{baseUrl}/login/oauth2/code/linkedin"    #<--- Spring automatically replaces the placeholder with actual base URL
+            redirect-uri: "{baseUrl}/login/oauth2/code/linkedin"
             scope: ${LINKEDIN_OAUTH_SCOPES}
         provider:
           linkedin:
@@ -38,6 +38,18 @@ spring:
     open-in-view: false
   liquibase:
     change-log: classpath:changelog/changelog-master.xml
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:true}
+    from: ${MAIL_FROM:no-reply@cvgen.io}
 
 app:
   security:
@@ -61,6 +73,7 @@ app:
       insecure-same-site: ${OAUTH2_INSECURE_SAMESITE}
       unsupported-provider-error-code: ${OAUTH2_UNSUPPORTED_PROVIDER_ERROR_CODE}
       failure-error-code: ${OAUTH2_FAILURE_ERROR_CODE}
+      email-unverified-conflict-error-code: ${OAUTH2_EMAIL_UNVERIFIED_CONFLICT_ERROR_CODE}
     messages:
       unauthorized: ${APP_SECURITY_UNAUTHORIZED_MESSAGE}
       forbidden: ${APP_SECURITY_FORBIDDEN_MESSAGE}
