@@ -28,6 +28,18 @@ public class GoogleOAuth2UserInfo extends OAuth2UserInfo {
 		return getString("picture");
 	}
 
+	@Override
+	public boolean isEmailVerified() {
+		Object verified = attributes.get("email_verified");
+		if (verified instanceof Boolean b) {
+			return b;
+		}
+		if (verified instanceof String s) {
+			return Boolean.parseBoolean(s);
+		}
+		return false;
+	}
+
 	private String getString(String key) {
 		Object value = attributes.get(key);
 		return value == null ? null : String.valueOf(value);
