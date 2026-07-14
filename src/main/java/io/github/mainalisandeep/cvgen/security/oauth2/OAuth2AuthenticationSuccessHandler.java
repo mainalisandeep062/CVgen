@@ -1,7 +1,7 @@
 package io.github.mainalisandeep.cvgen.security.oauth2;
 
 import io.github.mainalisandeep.cvgen.config.SecurityProperties;
-import io.github.mainalisandeep.cvgen.security.UserPrincipal;
+import io.github.mainalisandeep.cvgen.security.IdentifiedPrincipal;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,7 +37,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-        UserPrincipal principal = extractPrincipal(authentication);
+        IdentifiedPrincipal principal = extractPrincipal(authentication);
 
         String exchangeCode = generateExchangeCode();
         exchangeCodeStore.storeExchangeCode(exchangeCode, UUID.fromString(principal.getId()), EXCHANGE_CODE_TTL);
@@ -50,13 +50,13 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
         response.sendRedirect(redirectUri);
     }
 
-    private UserPrincipal extractPrincipal(Authentication authentication) {
+    private IdentifiedPrincipal extractPrincipal(Authentication authentication) {
         Object principal = authentication.getPrincipal();
-        if (principal instanceof UserPrincipal userPrincipal) {
-            return userPrincipal;
+        if (principal instanceof IdentifiedPrincipal identifiedPrincipal) {
+            return identifiedPrincipal;
         }
 
-        throw new IllegalStateException("OAuth2 authentication did not produce a `UserPrincipal` principal");
+        throw new IllegalStateException("OAuth2 authentication did not produce an `IdentifiedPrincipal` principal");
     }
 
     private String generateExchangeCode() {
