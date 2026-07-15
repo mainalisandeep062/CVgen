@@ -6,6 +6,7 @@ import io.github.mainalisandeep.cvgen.security.oauth2.CustomOAuth2UserService;
 import io.github.mainalisandeep.cvgen.security.oauth2.CustomOidcUserService;
 import io.github.mainalisandeep.cvgen.security.oauth2.OAuth2AuthenticationFailureHandler;
 import io.github.mainalisandeep.cvgen.security.oauth2.OAuth2AuthenticationSuccessHandler;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,6 +27,7 @@ import java.util.ArrayList;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final SecurityProperties securityProperties;
@@ -33,20 +35,6 @@ public class SecurityConfig {
     private final CustomOidcUserService customOidcUserService;
     private final OAuth2AuthenticationSuccessHandler successHandler;
     private final OAuth2AuthenticationFailureHandler failureHandler;
-
-    public SecurityConfig(
-            SecurityProperties securityProperties,
-            CustomOAuth2UserService customOAuth2UserService,
-            CustomOidcUserService customOidcUserService,
-            OAuth2AuthenticationSuccessHandler successHandler,
-            OAuth2AuthenticationFailureHandler failureHandler
-    ) {
-        this.securityProperties = securityProperties;
-        this.customOAuth2UserService = customOAuth2UserService;
-        this.customOidcUserService = customOidcUserService;
-        this.successHandler = successHandler;
-        this.failureHandler = failureHandler;
-    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
