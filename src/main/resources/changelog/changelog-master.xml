@@ -6,5 +6,6 @@
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
 
     <include file="initial/001-create-users-table.xml" relativeToChangelogFile="true"/>
+    <include file="initial/002-user-identities-and-otp.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
