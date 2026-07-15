@@ -1,5 +1,6 @@
-package io.github.mainalisandeep.cvgen.service;
+package io.github.mainalisandeep.cvgen.service.impl;
 
+import io.github.mainalisandeep.cvgen.service.MailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,7 @@ import org.thymeleaf.context.Context;
 
 @Service
 @RequiredArgsConstructor
-public class MailService {
+public class MailServiceImpl implements MailService {
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
