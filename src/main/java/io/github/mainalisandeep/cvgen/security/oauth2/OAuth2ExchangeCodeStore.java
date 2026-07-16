@@ -1,5 +1,6 @@
 package io.github.mainalisandeep.cvgen.security.oauth2;
 
+import io.github.mainalisandeep.cvgen.records.StoredValue;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -41,9 +42,4 @@ public class OAuth2ExchangeCodeStore {
         return ttl == null ? null : Instant.now().plus(ttl);
     }
 
-    private record StoredValue<T>(T value, Instant expiresAt) {
-        private boolean isExpired(Instant now) {
-            return expiresAt != null && now.isAfter(expiresAt);
-        }
-    }
 }

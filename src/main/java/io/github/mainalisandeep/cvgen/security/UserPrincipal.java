@@ -135,7 +135,7 @@ public final class UserPrincipal implements UserDetails, OAuth2User, IdentifiedP
 
     @Override
     public String getName() {
-        return id != null ? id : getUsername();
+        return id != null ? name : getUsername();
     }
 
     @Override
