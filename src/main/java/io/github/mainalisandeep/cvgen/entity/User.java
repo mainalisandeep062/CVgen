@@ -40,9 +40,6 @@ public class User {
     @Builder.Default
     private boolean emailVerified = false;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UserIdentity> userIdentities = new ArrayList<>();
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
