@@ -1,12 +1,13 @@
 package io.github.mainalisandeep.cvgen.controller;
 
 import io.github.mainalisandeep.cvgen.entity.User;
+import io.github.mainalisandeep.cvgen.records.ExchangeCodeRequest;
+import io.github.mainalisandeep.cvgen.records.TokenResponse;
 import io.github.mainalisandeep.cvgen.repository.UserRepository;
 import io.github.mainalisandeep.cvgen.security.JwtTokenProvider;
 import io.github.mainalisandeep.cvgen.security.UserPrincipal;
 import io.github.mainalisandeep.cvgen.security.oauth2.OAuth2ExchangeCodeStore;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -51,12 +52,6 @@ public class AuthController {
         String accessToken = jwtTokenProvider.generateToken(principal);
         String refreshToken = jwtTokenProvider.generateRefreshToken(principal);
 
-        return ResponseEntity.ok(new TokenResponse(accessToken, refreshToken));
-    }
-
-    public record ExchangeCodeRequest(@NotBlank String code) {
-    }
-
-    public record TokenResponse(String accessToken, String refreshToken) {
+            return ResponseEntity.ok(new TokenResponse(accessToken, refreshToken));
     }
 }
