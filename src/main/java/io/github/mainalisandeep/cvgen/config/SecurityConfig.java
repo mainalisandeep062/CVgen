@@ -55,7 +55,6 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
                     authorize.requestMatchers(MatchersConfig.PUBLIC_MATCHERS.toArray(String[]::new)).permitAll();
                     authorize.requestMatchers(MatchersConfig.SWAGGER_MATCHERS.toArray(String[]::new)).permitAll();
-                    authorize.requestMatchers("/api/auth/**").permitAll();
                     authorize.anyRequest().authenticated();
                 })
                 .oauth2Login(oauth2 -> oauth2
