@@ -8,12 +8,12 @@ import java.util.List;
 public final class MatchersConfig {
 
     public static final List<String> PUBLIC_MATCHERS = List.of(
-            "/api/v1/email/**",
-            "/api/v1/sign-up/**",
-            "/api/v1/auth/**",
-            "/api/v1/otp/**",
-            "/api/v1/otp/verify-otp/**",
-            "/api/v1/webhook/**",
+            "/api/email/**",
+            "/api/sign-up/**",
+            "/api/auth/**",
+            "/api/otp/**",
+            "/api/otp/verify-otp/**",
+            "/api/webhook/**",
             "/public/**",
             "/websocket/**",
             "/oauth2/logout"

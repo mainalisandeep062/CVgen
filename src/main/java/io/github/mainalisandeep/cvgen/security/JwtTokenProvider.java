@@ -1,6 +1,7 @@
 package io.github.mainalisandeep.cvgen.security;
 
 import io.github.mainalisandeep.cvgen.config.SecurityProperties;
+import io.github.mainalisandeep.cvgen.enums.ClaimType;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -23,7 +24,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -45,17 +45,17 @@ public class JwtTokenProvider {
         Objects.requireNonNull(principal, "principal must not be null");
         Instant now = Instant.now();
         Instant expiration = now.plus(securityProperties.getJwt().getExpiration());
-        return buildToken(principal, now, expiration);
+        return buildToken(principal, now, expiration, ClaimType.ACCESS.getValue());
     }
 
     public String generateRefreshToken(UserPrincipal principal) {
         Objects.requireNonNull(principal, "principal must not be null");
         Instant now = Instant.now();
         Instant expiration = now.plus(REFRESH_TOKEN_TTL);
-        return buildToken(principal, now, expiration);
+        return buildToken(principal, now, expiration, ClaimType.REFRESH.getValue());
     }
 
-    private String buildToken(UserPrincipal principal, Instant issuedAt, Instant expiration) {
+    private String buildToken(UserPrincipal principal, Instant issuedAt, Instant expiration, String type) {
         return Jwts.builder()
                 .subject(principal.getUsername())
                 .issuer(securityProperties.getJwt().getIssuer())
@@ -67,14 +67,23 @@ public class JwtTokenProvider {
                 .claim("email", principal.getEmail())
                 .claim("imageUrl", principal.getImageUrl())
                 .claim("authorities", principal.authorityNames())
+                .claim("type", type)
                 .signWith(secretKey)
                 .compact();
     }
 
-    public boolean validateToken(String token) {
+    public boolean validateAccessToken(String token) {
+        return validateTokenOfType(token, ClaimType.ACCESS.getValue());
+    }
+
+    public boolean validateRefreshToken(String token) {
+        return validateTokenOfType(token, ClaimType.REFRESH.getValue());
+    }
+
+    private boolean validateTokenOfType(String token, String expectedType) {
         try {
-            parseClaims(token);
-            return true;
+            Claims claims = parseClaims(token);
+            return expectedType.equals(claims.get("type", String.class));
         } catch (Exception ex) {
             log.debug("JWT validation failed: {}", ex.getMessage());
             return false;
