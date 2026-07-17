@@ -1,6 +1,10 @@
 package io.github.mainalisandeep.cvgen.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.mainalisandeep.cvgen.dto.LoginRequestDto;
+import io.github.mainalisandeep.cvgen.dto.ResendOtpRequestDto;
+import io.github.mainalisandeep.cvgen.dto.SignUpRequestDto;
+import io.github.mainalisandeep.cvgen.dto.VerifyOtpRequestDto;
 import io.github.mainalisandeep.cvgen.entity.User;
 import io.github.mainalisandeep.cvgen.repository.OtpCodeRepository;
 import io.github.mainalisandeep.cvgen.repository.TrustedDeviceRepository;
@@ -65,7 +69,7 @@ class LocalAuthControllerTest {
     @Test
     @DisplayName("AC4: Signup new user returns OTP_SENT")
     void signupNewUser() throws Exception {
-        var request = new LocalAuthController.SignupRequest("new@test.com", "password123", "New User");
+        var request = new SignUpRequestDto("new@test.com", "password123", "New User");
 
         mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -95,7 +99,7 @@ class LocalAuthControllerTest {
                 .build();
         userRepository.save(oauthUser);
 
-        var request = new LocalAuthController.SignupRequest("oauth@test.com", "password123", "Updated Name");
+        var request = new SignUpRequestDto("oauth@test.com", "password123", "Updated Name");
 
         mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -123,7 +127,7 @@ class LocalAuthControllerTest {
                 .build();
         userRepository.save(existing);
 
-        var request = new LocalAuthController.SignupRequest("exists@test.com", "password123", "Exists");
+        var request = new SignUpRequestDto("exists@test.com", "password123", "Exists");
 
         mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -149,7 +153,7 @@ class LocalAuthControllerTest {
         // Create trusted device
         String deviceToken = new TrustedDeviceService(trustedDeviceRepository, passwordEncoder).remember(user);
 
-        var request = new LocalAuthController.LoginRequest("trusted@test.com", "password123", true);
+        var request = new LoginRequestDto("trusted@test.com", "password123", true);
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -173,7 +177,7 @@ class LocalAuthControllerTest {
                 .build();
         userRepository.save(user);
 
-        var request = new LocalAuthController.LoginRequest("otp@test.com", "password123", false);
+        var request = new LoginRequestDto("otp@test.com", "password123", false);
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -197,7 +201,7 @@ class LocalAuthControllerTest {
                 .build();
         userRepository.save(user);
 
-        var request = new LocalAuthController.LoginRequest("wrong@test.com", "wrongpass", false);
+        var request = new LoginRequestDto("wrong@test.com", "wrongpass", false);
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -224,7 +228,7 @@ class LocalAuthControllerTest {
         String rawOtp = new OtpService(otpCodeRepository, passwordEncoder)
                 .generate("verify@test.com", OtpService.PURPOSE_SIGNUP);
 
-        var request = new LocalAuthController.VerifyOtpRequest(
+        var request = new VerifyOtpRequestDto(
                 "verify@test.com", OtpService.PURPOSE_SIGNUP, rawOtp, true);
 
         mockMvc.perform(post("/api/auth/otp/verify")
@@ -255,7 +259,7 @@ class LocalAuthControllerTest {
         new OtpService(otpCodeRepository, passwordEncoder)
                 .generate("wrongotp@test.com", OtpService.PURPOSE_SIGNUP);
 
-        var request = new LocalAuthController.VerifyOtpRequest(
+        var request = new VerifyOtpRequestDto(
                 "wrongotp@test.com", OtpService.PURPOSE_SIGNUP, "000000", false);
 
         mockMvc.perform(post("/api/auth/otp/verify")
@@ -287,7 +291,7 @@ class LocalAuthControllerTest {
         otp.setCreatedAt(Instant.now().minusSeconds(120));
         otpCodeRepository.save(otp);
 
-        var request = new LocalAuthController.ResendOtpRequest("resend@test.com", OtpService.PURPOSE_SIGNUP);
+        var request = new ResendOtpRequestDto("resend@test.com", OtpService.PURPOSE_SIGNUP);
 
         mockMvc.perform(post("/api/auth/otp/resend")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -312,7 +316,7 @@ class LocalAuthControllerTest {
         new OtpService(otpCodeRepository, passwordEncoder)
                 .generate("cooldown@test.com", OtpService.PURPOSE_SIGNUP);
 
-        var request = new LocalAuthController.ResendOtpRequest("cooldown@test.com", OtpService.PURPOSE_SIGNUP);
+        var request = new ResendOtpRequestDto("cooldown@test.com", OtpService.PURPOSE_SIGNUP);
 
         mockMvc.perform(post("/api/auth/otp/resend")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -338,7 +342,7 @@ class LocalAuthControllerTest {
         new TrustedDeviceService(trustedDeviceRepository, passwordEncoder).remember(user);
 
         // But browser 2 doesn't send the cookie
-        var request = new LocalAuthController.LoginRequest("different@test.com", "password123", true);
+        var request = new LoginRequestDto("different@test.com", "password123", true);
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
