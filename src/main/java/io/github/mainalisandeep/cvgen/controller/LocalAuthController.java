@@ -1,6 +1,12 @@
 package io.github.mainalisandeep.cvgen.controller;
 
+import io.github.mainalisandeep.cvgen.dto.LoginRequestDto;
+import io.github.mainalisandeep.cvgen.dto.ResendOtpRequestDto;
+import io.github.mainalisandeep.cvgen.dto.SignUpRequestDto;
+import io.github.mainalisandeep.cvgen.dto.VerifyOtpRequestDto;
 import io.github.mainalisandeep.cvgen.entity.User;
+import io.github.mainalisandeep.cvgen.records.OtpResponse;
+import io.github.mainalisandeep.cvgen.records.TokenResponse;
 import io.github.mainalisandeep.cvgen.repository.UserRepository;
 import io.github.mainalisandeep.cvgen.security.JwtTokenProvider;
 import io.github.mainalisandeep.cvgen.security.UserPrincipal;
@@ -42,27 +48,27 @@ public class LocalAuthController {
     // ---- Signup ----
 
     @PostMapping("/signup")
-    public ResponseEntity<OtpResponse> signup(@Valid @RequestBody SignupRequest request) {
-        Optional<User> existingOpt = userRepository.findByEmail(request.email());
+    public ResponseEntity<OtpResponse> signup(@Valid @RequestBody SignUpRequestDto request) {
+        Optional<User> existingOpt = userRepository.findByEmail(request.getEmail());
 
         if (existingOpt.isPresent()) {
             User existing = existingOpt.get();
             if (existing.getPasswordHash() != null && !existing.getPasswordHash().isBlank()) {
                 // Already fully signed up locally
                 return ResponseEntity.badRequest()
-                        .body(new OtpResponse("ALREADY_REGISTERED", request.email(), null, null));
+                        .body(new OtpResponse("ALREADY_REGISTERED", request.getEmail(), null, null));
             }
             // OAuth-created user with no password — attach local login
-            existing.setPasswordHash(passwordEncoder.encode(request.password()));
-            existing.setName(request.name());
+            existing.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+            existing.setName(request.getName());
             existing.setUpdatedAt(Instant.now());
             userRepository.save(existing);
         } else {
             // New user
             User newUser = User.builder()
-                    .email(request.email())
-                    .name(request.name())
-                    .passwordHash(passwordEncoder.encode(request.password()))
+                    .email(request.getEmail())
+                    .name(request.getName())
+                    .passwordHash(passwordEncoder.encode(request.getPassword()))
                     .emailVerified(false)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -70,32 +76,32 @@ public class LocalAuthController {
             userRepository.save(newUser);
         }
 
-        String rawOtp = otpService.generate(request.email(), OtpService.PURPOSE_SIGNUP);
-        mailService.sendOtpEmail(request.email(), rawOtp, (int) OtpService.OTP_EXPIRY.toMinutes(), OtpService.PURPOSE_SIGNUP);
+        String rawOtp = otpService.generate(request.getEmail(), OtpService.PURPOSE_SIGNUP);
+        mailService.sendOtpEmail(request.getEmail(), rawOtp, (int) OtpService.OTP_EXPIRY.toMinutes(), OtpService.PURPOSE_SIGNUP);
 
         return ResponseEntity.accepted()
-                .body(new OtpResponse("OTP_SENT", request.email(), null, null));
+                .body(new OtpResponse("OTP_SENT", request.getEmail(), null, null));
     }
 
     // ---- Login ----
 
     @PostMapping("/login")
     public ResponseEntity<?> login(
-            @Valid @RequestBody LoginRequest request,
+            @Valid @RequestBody LoginRequestDto request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse
     ) {
-        User user = userRepository.findByEmail(request.email())
+        User user = userRepository.findByEmail(request.getEmail())
                 .orElse(null);
 
         if (user == null || user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
             return ResponseEntity.badRequest()
-                    .body(new OtpResponse("INVALID_CREDENTIALS", request.email(), null, null));
+                    .body(new OtpResponse("INVALID_CREDENTIALS", request.getEmail(), null, null));
         }
 
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             return ResponseEntity.badRequest()
-                    .body(new OtpResponse("INVALID_CREDENTIALS", request.email(), null, null));
+                    .body(new OtpResponse("INVALID_CREDENTIALS", request.getEmail(), null, null));
         }
 
         // Check trusted device
@@ -106,36 +112,36 @@ public class LocalAuthController {
             // Skip OTP, issue JWT directly
             String accessToken = mintJwt(user);
             String refreshToken = jwtTokenProvider.generateRefreshToken(toPrincipal(user));
-            return ResponseEntity.ok(new TokenResponse(accessToken, refreshToken));
+            return ResponseEntity.ok(new TokenResponse(accessToken));
         }
 
         // Not trusted — require OTP
-        String rawOtp = otpService.generate(request.email(), OtpService.PURPOSE_LOGIN);
-        mailService.sendOtpEmail(request.email(), rawOtp, (int) OtpService.OTP_EXPIRY.toMinutes(), OtpService.PURPOSE_LOGIN);
+        String rawOtp = otpService.generate(request.getEmail(), OtpService.PURPOSE_LOGIN);
+        mailService.sendOtpEmail(request.getEmail(), rawOtp, (int) OtpService.OTP_EXPIRY.toMinutes(), OtpService.PURPOSE_LOGIN);
 
         return ResponseEntity.accepted()
-                .body(new OtpResponse("OTP_REQUIRED", request.email(), null, null));
+                .body(new OtpResponse("OTP_REQUIRED", request.getEmail(), null, null));
     }
 
     // ---- OTP Verify ----
 
     @PostMapping("/otp/verify")
     public ResponseEntity<?> verifyOtp(
-            @Valid @RequestBody VerifyOtpRequest request,
+            @Valid @RequestBody VerifyOtpRequestDto request,
             HttpServletResponse httpResponse
     ) {
-        boolean valid = otpService.verify(request.email(), request.purpose(), request.code());
+        boolean valid = otpService.verify(request.getEmail(), request.getPurpose(), request.getCode());
 
         if (!valid) {
             return ResponseEntity.badRequest()
-                    .body(new OtpResponse("INVALID_OTP", request.email(), null, null));
+                    .body(new OtpResponse("INVALID_OTP", request.getEmail(), null, null));
         }
 
-        User user = userRepository.findByEmail(request.email())
+        User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalStateException("User not found for verified OTP"));
 
         // If signup purpose, mark email as verified
-        if (OtpService.PURPOSE_SIGNUP.equals(request.purpose())) {
+        if (OtpService.PURPOSE_SIGNUP.equals(request.getPurpose())) {
             user.setEmailVerified(true);
             userRepository.save(user);
         }
@@ -145,7 +151,7 @@ public class LocalAuthController {
         String refreshToken = jwtTokenProvider.generateRefreshToken(toPrincipal(user));
 
         // Set trusted device cookie if requested
-        if (Boolean.TRUE.equals(request.rememberMe())) {
+        if (Boolean.TRUE.equals(request.getRememberMe())) {
             String rawDeviceToken = trustedDeviceService.remember(user);
             Cookie cookie = new Cookie(TrustedDeviceService.COOKIE_NAME, rawDeviceToken);
             cookie.setHttpOnly(true);
@@ -156,23 +162,23 @@ public class LocalAuthController {
             httpResponse.addCookie(cookie);
         }
 
-        return ResponseEntity.ok(new TokenResponse(accessToken, refreshToken));
+        return ResponseEntity.ok(new TokenResponse(accessToken));
     }
 
     // ---- OTP Resend ----
 
     @PostMapping("/otp/resend")
-    public ResponseEntity<OtpResponse> resendOtp(@Valid @RequestBody ResendOtpRequest request) {
-        if (!otpService.canResend(request.email(), request.purpose())) {
+    public ResponseEntity<OtpResponse> resendOtp(@Valid @RequestBody ResendOtpRequestDto request) {
+        if (!otpService.canResend(request.getEmail(), request.getPurpose())) {
             return ResponseEntity.badRequest()
-                    .body(new OtpResponse("RESEND_COOLDOWN", request.email(), null, null));
+                    .body(new OtpResponse("RESEND_COOLDOWN", request.getEmail(), null, null));
         }
 
-        String rawOtp = otpService.generate(request.email(), request.purpose());
-        mailService.sendOtpEmail(request.email(), rawOtp, (int) OtpService.OTP_EXPIRY.toMinutes(), request.purpose());
+        String rawOtp = otpService.generate(request.getEmail(), request.getPurpose());
+        mailService.sendOtpEmail(request.getEmail(), rawOtp, (int) OtpService.OTP_EXPIRY.toMinutes(), request.getPurpose());
 
         return ResponseEntity.accepted()
-                .body(new OtpResponse("OTP_SENT", request.email(), null, null));
+                .body(new OtpResponse("OTP_SENT", request.getEmail(), null, null));
     }
 
     // ---- Helpers ----
@@ -207,33 +213,4 @@ public class LocalAuthController {
         return null;
     }
 
-    // ---- Records ----
-
-    public record SignupRequest(
-            @NotBlank @Email String email,
-            @NotBlank String password,
-            @NotBlank String name
-    ) {}
-
-    public record LoginRequest(
-            @NotBlank @Email String email,
-            @NotBlank String password,
-            Boolean rememberMe
-    ) {}
-
-    public record VerifyOtpRequest(
-            @NotBlank @Email String email,
-            @NotBlank String purpose,
-            @NotBlank String code,
-            Boolean rememberMe
-    ) {}
-
-    public record ResendOtpRequest(
-            @NotBlank @Email String email,
-            @NotBlank String purpose
-    ) {}
-
-    public record OtpResponse(String status, String email, String accessToken, String refreshToken) {}
-
-    public record TokenResponse(String accessToken, String refreshToken) {}
 }
