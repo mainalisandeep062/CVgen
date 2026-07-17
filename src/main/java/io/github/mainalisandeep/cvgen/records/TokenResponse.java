@@ -1,5 +1,4 @@
 package io.github.mainalisandeep.cvgen.records;
 
-public record TokenResponse(String accessToken,
-                            String refreshToken) {
+public record TokenResponse(String accessToken) {
 }

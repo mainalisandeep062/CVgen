@@ -19,6 +19,9 @@ public class SecurityProperties {
     @Valid
     private Jwt jwt = new Jwt();
 
+    @NotBlank
+    private String logoutUrl;
+
     @Valid
     private OAuth2 oauth2 = new OAuth2();
 
@@ -75,6 +78,12 @@ public class SecurityProperties {
         private String failureErrorCode;
 
         private String emailUnverifiedConflictErrorCode;
+
+        private String accessTokenCookieName;
+        private String bearerPrefix;
+        private String defaultRole;
+        private String secureSameSite;
+        private String insecureSameSite;
     }
 
 
