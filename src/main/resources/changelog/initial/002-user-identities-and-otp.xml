@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
 
-    <changeSet id="002-user-identities-and-otp" author="cvgen">
+    <changeSet id="002-user-identities-and-otp" author="sandeep mainali">
         <!-- Add email_verified to users -->
         <addColumn tableName="users">
             <column name="email_verified" type="BOOLEAN" defaultValueBoolean="false">

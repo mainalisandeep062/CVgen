@@ -30,6 +30,11 @@ spring:
             user-info-uri: ${LINKEDIN_USER_INFO_URI}
             jwk-set-uri: https://www.linkedin.com/oauth/openid/jwks
             user-name-attribute: ${LINKEDIN_USER_NAME_ATTRIBUTE}
+  messages:
+    basename: messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+    use-code-as-default-message: true
   datasource:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
@@ -76,9 +81,6 @@ app:
       unsupported-provider-error-code: ${OAUTH2_UNSUPPORTED_PROVIDER_ERROR_CODE}
       failure-error-code: ${OAUTH2_FAILURE_ERROR_CODE}
       email-unverified-conflict-error-code: ${OAUTH2_EMAIL_UNVERIFIED_CONFLICT_ERROR_CODE}
-    messages:
-      unauthorized: ${APP_SECURITY_UNAUTHORIZED_MESSAGE}
-      forbidden: ${APP_SECURITY_FORBIDDEN_MESSAGE}
     cors:
       allowed-origins: ${CORS_ALLOWED_ORIGINS}
       allowed-methods: ${CORS_ALLOWED_METHODS}
