@@ -1,6 +1,7 @@
 package io.github.mainalisandeep.cvgen.service;
 
 import io.github.mainalisandeep.cvgen.entity.OtpCode;
+import io.github.mainalisandeep.cvgen.enums.OtpPurpose;
 import io.github.mainalisandeep.cvgen.repository.OtpCodeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,9 +22,6 @@ public class OtpService {
     public static final int MAX_ATTEMPTS = 5;
     public static final Duration RESEND_COOLDOWN = Duration.ofSeconds(60);
 
-    public static final String PURPOSE_SIGNUP = "SIGNUP";
-    public static final String PURPOSE_LOGIN = "LOGIN";
-
     private final OtpCodeRepository otpCodeRepository;
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom = new SecureRandom();
@@ -34,27 +32,22 @@ public class OtpService {
      * Returns the raw code (caller passes to MailService, never persists it).
      */
     @Transactional
-    public String generate(String email, String purpose) {
-        // Invalidate prior unconsumed OTP
-        otpCodeRepository.findFirstByEmailAndPurposeAndConsumedAtIsNullOrderByCreatedAtDesc(email, purpose)
-                .ifPresent(existing -> {
-                    existing.setConsumedAt(Instant.now());
-                    otpCodeRepository.save(existing);
-                });
+    public String generate(String email, OtpPurpose purpose) {
+        findLatestUnconsumed(email, purpose).ifPresent(existing -> {
+            existing.setConsumedAt(Instant.now());
+            otpCodeRepository.save(existing);
+        });
 
         String rawCode = generateRawCode();
-        String codeHash = passwordEncoder.encode(rawCode);
 
-        OtpCode otpCode = OtpCode.builder()
+        otpCodeRepository.save(OtpCode.builder()
                 .email(email)
                 .purpose(purpose)
-                .codeHash(codeHash)
+                .codeHash(passwordEncoder.encode(rawCode))
                 .expiresAt(Instant.now().plus(OTP_EXPIRY))
                 .attemptCount(0)
-                .createdAt(Instant.now())
-                .build();
+                .build());
 
-        otpCodeRepository.save(otpCode);
         return rawCode;
     }
 
@@ -63,34 +56,23 @@ public class OtpService {
      * Returns true if valid, false otherwise.
      */
     @Transactional
-    public boolean verify(String email, String purpose, String rawCode) {
-        Optional<OtpCode> latestOpt = otpCodeRepository
-                .findFirstByEmailAndPurposeAndConsumedAtIsNullOrderByCreatedAtDesc(email, purpose);
-
-        if (latestOpt.isEmpty()) {
+    public boolean verify(String email, OtpPurpose purpose, String rawCode) {
+        Optional<OtpCode> latest = findLatestUnconsumed(email, purpose);
+        if (latest.isEmpty()) {
             return false;
         }
 
-        OtpCode otpCode = latestOpt.get();
-
-        // Check expiry
-        if (Instant.now().isAfter(otpCode.getExpiresAt())) {
+        OtpCode otpCode = latest.get();
+        if (otpCode.isExpired(Instant.now()) || otpCode.getAttemptCount() >= MAX_ATTEMPTS) {
             return false;
         }
 
-        // Check attempt cap
-        if (otpCode.getAttemptCount() >= MAX_ATTEMPTS) {
-            return false;
-        }
-
-        // Verify code against BCrypt hash
         if (!passwordEncoder.matches(rawCode, otpCode.getCodeHash())) {
             otpCode.setAttemptCount(otpCode.getAttemptCount() + 1);
             otpCodeRepository.save(otpCode);
             return false;
         }
 
-        // Success — mark consumed
         otpCode.setConsumedAt(Instant.now());
         otpCodeRepository.save(otpCode);
         return true;
@@ -99,28 +81,22 @@ public class OtpService {
     /**
      * Check if a resend is allowed (outside the cooldown window).
      */
-    public boolean canResend(String email, String purpose) {
-        Optional<OtpCode> latestOpt = otpCodeRepository
-                .findFirstByEmailAndPurposeAndConsumedAtIsNullOrderByCreatedAtDesc(email, purpose);
+    @Transactional(readOnly = true)
+    public boolean canResend(String email, OtpPurpose purpose) {
+        return findLatestUnconsumed(email, purpose)
+                .map(otpCode -> !Instant.now().isBefore(otpCode.getCreatedAt().plus(RESEND_COOLDOWN)))
+                .orElse(true);
+    }
 
-        if (latestOpt.isEmpty()) {
-            return true;
-        }
-
-        OtpCode otpCode = latestOpt.get();
-        // If the latest unconsumed OTP is within cooldown, reject resend
-        if (Instant.now().isBefore(otpCode.getCreatedAt().plus(RESEND_COOLDOWN))) {
-            return false;
-        }
-
-        return true;
+    private Optional<OtpCode> findLatestUnconsumed(String email, OtpPurpose purpose) {
+        return otpCodeRepository.findFirstByEmailAndPurposeAndConsumedAtIsNullOrderByCreatedAtDesc(email, purpose);
     }
 
     private String generateRawCode() {
-        StringBuilder sb = new StringBuilder(OTP_LENGTH);
+        StringBuilder code = new StringBuilder(OTP_LENGTH);
         for (int i = 0; i < OTP_LENGTH; i++) {
-            sb.append(secureRandom.nextInt(10));
+            code.append(secureRandom.nextInt(10));
         }
-        return sb.toString();
+        return code.toString();
     }
 }

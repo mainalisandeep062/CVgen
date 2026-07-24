@@ -1,20 +1,20 @@
 package io.github.mainalisandeep.cvgen.entity;
 
+import io.github.mainalisandeep.cvgen.common.entity.BaseEntity;
+import io.github.mainalisandeep.cvgen.enums.OtpPurpose;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
+import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Entity
 @Table(name = "otp_codes")
@@ -22,18 +22,15 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class OtpCode {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+@SuperBuilder
+public class OtpCode extends BaseEntity {
 
     @Column(nullable = false)
     private String email;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String purpose;
+    private OtpPurpose purpose;
 
     @Column(name = "code_hash", nullable = false)
     private String codeHash;
@@ -48,7 +45,7 @@ public class OtpCode {
     @Builder.Default
     private int attemptCount = 0;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    public boolean isExpired(Instant now) {
+        return now.isAfter(expiresAt);
+    }
 }
