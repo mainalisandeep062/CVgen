@@ -5,7 +5,9 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
 
-    <changeSet id="001-create-users-table" author="cvgen">
+    <changeSet id="001-create-users-table" author="sandeep mainali">
+        <!-- Accepts the checksum of already-deployed databases after the dbms="postgresql" fix below. -->
+        <validCheckSum>ANY</validCheckSum>
         <createTable tableName="users">
             <column name="id" type="UUID">
                 <constraints primaryKey="true" nullable="false"/>
@@ -37,7 +39,8 @@
             <column name="provider"/>
             <column name="provider_id"/>
         </createIndex>
-        <sql>
+        <!-- Partial index: PostgreSQL only. H2 (used by the test profile) cannot parse the WHERE clause. -->
+        <sql dbms="postgresql">
             CREATE UNIQUE INDEX idx_users_provider_provider_id_not_null ON users(provider, provider_id) WHERE provider IS NOT NULL;
         </sql>
         <rollback>

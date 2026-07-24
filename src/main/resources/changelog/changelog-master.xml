@@ -7,5 +7,6 @@
 
     <include file="initial/001-create-users-table.xml" relativeToChangelogFile="true"/>
     <include file="initial/002-user-identities-and-otp.xml" relativeToChangelogFile="true"/>
+    <include file="initial/003-base-entity-audit-columns.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
