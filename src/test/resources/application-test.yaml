@@ -34,9 +34,6 @@ app:
       unsupported-provider-error-code: unsupported_oauth2_provider
       failure-error-code: oauth2_authentication_failed
       email-unverified-conflict-error-code: email_unverified_conflict
-    messages:
-      unauthorized: Unauthorized
-      forbidden: Forbidden
     cors:
       allowed-origins: http://localhost:3000
       allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS

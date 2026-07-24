@@ -4,6 +4,7 @@ import io.github.mainalisandeep.cvgen.entity.User;
 import io.github.mainalisandeep.cvgen.entity.UserIdentity;
 import io.github.mainalisandeep.cvgen.repository.UserIdentityRepository;
 import io.github.mainalisandeep.cvgen.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,13 @@ class OAuth2UserResolverConcurrencyTest {
 
     @BeforeEach
     void setUp() {
+        userIdentityRepository.deleteAll();
+        userRepository.deleteAll();
+    }
+
+    /** This test is not transactional, so its rows must be removed or later tests inherit them. */
+    @AfterEach
+    void tearDown() {
         userIdentityRepository.deleteAll();
         userRepository.deleteAll();
     }
