@@ -3,12 +3,14 @@ package io.github.mainalisandeep.cvgen.service;
 import io.github.mainalisandeep.cvgen.entity.TrustedDevice;
 import io.github.mainalisandeep.cvgen.entity.User;
 import io.github.mainalisandeep.cvgen.repository.TrustedDeviceRepository;
+import io.github.mainalisandeep.cvgen.repository.UserIdentityRepository;
 import io.github.mainalisandeep.cvgen.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,21 +33,26 @@ class TrustedDeviceServiceTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private UserIdentityRepository userIdentityRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     private User testUser;
 
     @BeforeEach
     void setUp() {
+        // identities first: they hold the FK to users
+        userIdentityRepository.deleteAll();
         trustedDeviceRepository.deleteAll();
         userRepository.deleteAll();
 
-        testUser = User.builder()
+        testUser = userRepository.save(User.builder()
                 .email("device@test.com")
                 .name("Device Test")
                 .emailVerified(true)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-        userRepository.save(testUser);
+                .build());
     }
 
     @Test
@@ -63,6 +70,7 @@ class TrustedDeviceServiceTest {
         assertThat(device.getTokenHash()).isNotEqualTo(rawToken); // hashed storage
         assertThat(device.getExpiresAt()).isAfter(Instant.now());
         assertThat(device.getLastUsedAt()).isNull();
+        assertThat(device.getCreatedAt()).isNotNull();
     }
 
     @Test
@@ -70,10 +78,8 @@ class TrustedDeviceServiceTest {
     void isTrustedValidToken() {
         String rawToken = trustedDeviceService.remember(testUser);
 
-        boolean trusted = trustedDeviceService.isTrusted(testUser.getId(), rawToken);
-        assertThat(trusted).isTrue();
+        assertThat(trustedDeviceService.isTrusted(testUser.getId(), rawToken)).isTrue();
 
-        // last_used_at should be updated
         TrustedDevice device = trustedDeviceRepository.findAll().get(0);
         assertThat(device.getLastUsedAt()).isNotNull();
     }
@@ -83,8 +89,16 @@ class TrustedDeviceServiceTest {
     void isTrustedWrongToken() {
         trustedDeviceService.remember(testUser);
 
-        boolean trusted = trustedDeviceService.isTrusted(testUser.getId(), "wrong-token");
-        assertThat(trusted).isFalse();
+        assertThat(trustedDeviceService.isTrusted(testUser.getId(), "wrong-token")).isFalse();
+    }
+
+    @Test
+    @DisplayName("AC7: isTrusted returns false for blank or missing token")
+    void isTrustedBlankToken() {
+        trustedDeviceService.remember(testUser);
+
+        assertThat(trustedDeviceService.isTrusted(testUser.getId(), null)).isFalse();
+        assertThat(trustedDeviceService.isTrusted(testUser.getId(), "  ")).isFalse();
     }
 
     @Test
@@ -92,55 +106,39 @@ class TrustedDeviceServiceTest {
     void isTrustedExpiredDevice() {
         String rawToken = trustedDeviceService.remember(testUser);
 
-        // Expire the device
         TrustedDevice device = trustedDeviceRepository.findAll().get(0);
         device.setExpiresAt(Instant.now().minusSeconds(1));
         trustedDeviceRepository.save(device);
 
-        boolean trusted = trustedDeviceService.isTrusted(testUser.getId(), rawToken);
-        assertThat(trusted).isFalse();
+        assertThat(trustedDeviceService.isTrusted(testUser.getId(), rawToken)).isFalse();
     }
 
     @Test
-    @DisplayName("AC7: isTrusted returns false for different user")
+    @DisplayName("AC7: isTrusted returns false for a different user")
     void isTrustedDifferentUser() {
         String rawToken = trustedDeviceService.remember(testUser);
 
-        UUID differentUserId = UUID.randomUUID();
-        boolean trusted = trustedDeviceService.isTrusted(differentUserId, rawToken);
-        assertThat(trusted).isFalse();
+        assertThat(trustedDeviceService.isTrusted(UUID.randomUUID(), rawToken)).isFalse();
     }
 
     @Test
-    @DisplayName("AC7: Per-device isolation — different browser tokens are independent")
+    @DisplayName("AC7: Per-device isolation — expiring one device leaves the other valid")
     void perDeviceIsolation() {
         String device1Token = trustedDeviceService.remember(testUser);
         String device2Token = trustedDeviceService.remember(testUser);
 
         assertThat(device1Token).isNotEqualTo(device2Token);
-
-        // Both are valid
         assertThat(trustedDeviceService.isTrusted(testUser.getId(), device1Token)).isTrue();
         assertThat(trustedDeviceService.isTrusted(testUser.getId(), device2Token)).isTrue();
 
-        // Expire device 1
-        var devices = trustedDeviceRepository.findAll();
-        for (var d : devices) {
-            if (d.getTokenHash().equals(device1Token)) {
-                // Can't compare directly due to hashing, but we can expire all and test
-            }
-        }
+        TrustedDevice device1 = trustedDeviceRepository.findAll().stream()
+                .filter(device -> passwordEncoder.matches(device1Token, device.getTokenHash()))
+                .findFirst()
+                .orElseThrow();
+        device1.setExpiresAt(Instant.now().minusSeconds(1));
+        trustedDeviceRepository.save(device1);
 
-        // Instead, expire one device manually
-        TrustedDevice toExpire = trustedDeviceRepository.findAll().get(0);
-        toExpire.setExpiresAt(Instant.now().minusSeconds(1));
-        trustedDeviceRepository.save(toExpire);
-
-        // One should be expired, one valid — but since we can't tell which token is which
-        // after hashing, we verify the count
-        long validCount = trustedDeviceRepository.findAll().stream()
-                .filter(d -> d.getExpiresAt().isAfter(Instant.now()))
-                .count();
-        assertThat(validCount).isEqualTo(1);
+        assertThat(trustedDeviceService.isTrusted(testUser.getId(), device1Token)).isFalse();
+        assertThat(trustedDeviceService.isTrusted(testUser.getId(), device2Token)).isTrue();
     }
 }
