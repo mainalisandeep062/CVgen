@@ -135,7 +135,7 @@ public final class UserPrincipal implements UserDetails, OAuth2User, IdentifiedP
 
     @Override
     public String getName() {
-        return id != null ? name : getUsername();
+        return name != null ? name : getUsername();
     }
 
     @Override
@@ -163,13 +163,5 @@ public final class UserPrincipal implements UserDetails, OAuth2User, IdentifiedP
             }
         }
         return Collections.unmodifiableSet(names);
-    }
-
-    public Set<GrantedAuthority> mutableAuthorities() {
-        Set<GrantedAuthority> result = new HashSet<>();
-        for (String authority : authorityNames()) {
-            result.add(new SimpleGrantedAuthority(authority));
-        }
-        return result;
     }
 }

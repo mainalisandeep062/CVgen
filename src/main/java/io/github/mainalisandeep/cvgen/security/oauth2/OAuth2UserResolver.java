@@ -10,7 +10,6 @@ import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.Map;
 
 @Component
@@ -57,7 +56,6 @@ public class OAuth2UserResolver {
                         .provider(provider)
                         .providerId(userInfo.getId())
                         .emailAtProvider(userInfo.getEmail())
-                        .createdAt(Instant.now())
                         .build();
                 userIdentityRepository.save(newIdentity);
 
@@ -84,8 +82,6 @@ public class OAuth2UserResolver {
                 .email(userInfo.getEmail())
                 .name(userInfo.getName())
                 .emailVerified(userInfo.isEmailVerified())
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
                 .build();
         User savedUser = userRepository.save(newUser);
 
@@ -94,7 +90,6 @@ public class OAuth2UserResolver {
                 .provider(provider)
                 .providerId(userInfo.getId())
                 .emailAtProvider(userInfo.getEmail())
-                .createdAt(Instant.now())
                 .build();
         userIdentityRepository.save(identity);
 

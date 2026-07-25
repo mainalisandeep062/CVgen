@@ -5,7 +5,9 @@ import io.github.mainalisandeep.cvgen.security.IdentifiedPrincipal;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -41,6 +43,15 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
         String exchangeCode = generateExchangeCode();
         exchangeCodeStore.storeExchangeCode(exchangeCode, UUID.fromString(principal.getId()), EXCHANGE_CODE_TTL);
+
+        // The session only existed to carry the OAuth2 handshake. Auth now travels via the
+        // exchange code + JWTs; a surviving session would keep this user logged in even
+        // after a later logout + different login.
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        SecurityContextHolder.clearContext();
 
         String redirectUri = UriComponentsBuilder.fromUriString(resolveRedirectUri())
                 .queryParam("code", exchangeCode)

@@ -26,12 +26,23 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 @Component
 public class JwtTokenProvider {
 
+    /** Lifetime of a refresh token; the refresh cookie is built with the same value. */
+    public static final Duration REFRESH_TOKEN_TTL = Duration.ofDays(7);
+
+    public static final String CLAIM_ID = "id";
+    public static final String CLAIM_PROVIDER = "provider";
+    public static final String CLAIM_NAME = "name";
+    public static final String CLAIM_EMAIL = "email";
+    public static final String CLAIM_IMAGE_URL = "imageUrl";
+    public static final String CLAIM_AUTHORITIES = "authorities";
+    public static final String CLAIM_TYPE = "type";
+
     private static final Logger log = LoggerFactory.getLogger(JwtTokenProvider.class);
-    private static final Duration REFRESH_TOKEN_TTL = Duration.ofDays(7);
 
     private final SecurityProperties securityProperties;
     private final SecretKey secretKey;
@@ -61,13 +72,13 @@ public class JwtTokenProvider {
                 .issuer(securityProperties.getJwt().getIssuer())
                 .issuedAt(Date.from(issuedAt))
                 .expiration(Date.from(expiration))
-                .claim("id", principal.getId())
-                .claim("provider", principal.getProvider())
-                .claim("name", principal.getName())
-                .claim("email", principal.getEmail())
-                .claim("imageUrl", principal.getImageUrl())
-                .claim("authorities", principal.authorityNames())
-                .claim("type", type)
+                .claim(CLAIM_ID, principal.getId())
+                .claim(CLAIM_PROVIDER, principal.getProvider())
+                .claim(CLAIM_NAME, principal.getName())
+                .claim(CLAIM_EMAIL, principal.getEmail())
+                .claim(CLAIM_IMAGE_URL, principal.getImageUrl())
+                .claim(CLAIM_AUTHORITIES, principal.authorityNames())
+                .claim(CLAIM_TYPE, type)
                 .signWith(secretKey)
                 .compact();
     }
@@ -83,7 +94,7 @@ public class JwtTokenProvider {
     private boolean validateTokenOfType(String token, String expectedType) {
         try {
             Claims claims = parseClaims(token);
-            return expectedType.equals(claims.get("type", String.class));
+            return expectedType.equals(claims.get(CLAIM_TYPE, String.class));
         } catch (Exception ex) {
             log.debug("JWT validation failed: {}", ex.getMessage());
             return false;
@@ -94,6 +105,11 @@ public class JwtTokenProvider {
         return parseClaims(token).getSubject();
     }
 
+    /** User id carried by the {@code id} claim of an access or refresh token. */
+    public UUID getUserIdFromToken(String token) {
+        return UUID.fromString(parseClaims(token).get(CLAIM_ID, String.class));
+    }
+
     public Claims getClaims(String token) {
         return parseClaims(token);
     }
@@ -102,12 +118,12 @@ public class JwtTokenProvider {
         Claims claims = parseClaims(token);
         Set<GrantedAuthority> authorities = new LinkedHashSet<>(extractAuthorities(claims));
         UserPrincipal principal = UserPrincipal.oauth2User(
-                claims.get("id", String.class),
-                claims.get("provider", String.class),
-                claims.get("name", String.class),
+                claims.get(CLAIM_ID, String.class),
+                claims.get(CLAIM_PROVIDER, String.class),
+                claims.get(CLAIM_NAME, String.class),
                 claims.getSubject(),
-                claims.get("email", String.class),
-                claims.get("imageUrl", String.class),
+                claims.get(CLAIM_EMAIL, String.class),
+                claims.get(CLAIM_IMAGE_URL, String.class),
                 claims,
                 authorities
         );
@@ -128,7 +144,7 @@ public class JwtTokenProvider {
     }
 
     private Collection<? extends GrantedAuthority> extractAuthorities(Claims claims) {
-        Object value = claims.get("authorities");
+        Object value = claims.get(CLAIM_AUTHORITIES);
         List<String> authorityNames = new ArrayList<>();
 
         if (value instanceof Collection<?> collection) {
@@ -146,7 +162,7 @@ public class JwtTokenProvider {
         }
 
         if (authorityNames.isEmpty()) {
-            authorityNames.add("ROLE_USER");
+            authorityNames.add(securityProperties.getOauth2().getDefaultRole());
         }
 
         List<GrantedAuthority> authorities = new ArrayList<>();
