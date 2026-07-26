@@ -15,6 +15,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserResponseDto {
+
     private UUID userId;
 
     private String email;
@@ -25,5 +26,6 @@ public class UserResponseDto {
 
     private Boolean isEmailVerified;
 
+    @Builder.Default
     private List<String> providers = new ArrayList<>();
 }

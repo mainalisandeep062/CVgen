@@ -61,6 +61,12 @@ public abstract class BaseController {
 
     /** Resolves {@code messageKey} and wraps {@code data} in a response with the given status. */
     protected <T> ResponseEntity<GlobalApiResponse<T>> respond(HttpStatus status, String messageKey, T data, Object... arguments) {
-        return ResponseEntity.status(status).body(successResponse(customMessageSource.get(messageKey, arguments), data));
+        return ResponseEntity
+                .status(status)
+                .body(
+                        successResponse(customMessageSource.get(
+                                messageKey, arguments
+                                ), data)
+                );
     }
 }
