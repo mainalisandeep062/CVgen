@@ -1,216 +1,95 @@
 package io.github.mainalisandeep.cvgen.controller;
 
+import io.github.mainalisandeep.cvgen.common.controller.BaseController;
+import io.github.mainalisandeep.cvgen.common.message.SuccessResponseConstant;
+import io.github.mainalisandeep.cvgen.common.response.GlobalApiResponse;
 import io.github.mainalisandeep.cvgen.dto.LoginRequestDto;
 import io.github.mainalisandeep.cvgen.dto.ResendOtpRequestDto;
 import io.github.mainalisandeep.cvgen.dto.SignUpRequestDto;
 import io.github.mainalisandeep.cvgen.dto.VerifyOtpRequestDto;
-import io.github.mainalisandeep.cvgen.entity.User;
+import io.github.mainalisandeep.cvgen.enums.OtpPurpose;
+import io.github.mainalisandeep.cvgen.records.AuthTokens;
+import io.github.mainalisandeep.cvgen.records.LoginResult;
 import io.github.mainalisandeep.cvgen.records.OtpResponse;
 import io.github.mainalisandeep.cvgen.records.TokenResponse;
-import io.github.mainalisandeep.cvgen.repository.UserRepository;
-import io.github.mainalisandeep.cvgen.security.JwtTokenProvider;
-import io.github.mainalisandeep.cvgen.security.UserPrincipal;
-import io.github.mainalisandeep.cvgen.service.MailService;
-import io.github.mainalisandeep.cvgen.service.OtpService;
-import io.github.mainalisandeep.cvgen.service.TrustedDeviceService;
-import jakarta.servlet.http.Cookie;
+import io.github.mainalisandeep.cvgen.security.util.CookieUtil;
+import io.github.mainalisandeep.cvgen.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Instant;
-import java.util.LinkedHashSet;
-import java.util.Optional;
-import java.util.Set;
-
+/**
+ * Email + password authentication. Business rules live in {@link AuthService};
+ * this layer only maps results to HTTP responses and cookies.
+ */
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-public class LocalAuthController {
+public class LocalAuthController extends BaseController {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final OtpService otpService;
-    private final MailService mailService;
-    private final TrustedDeviceService trustedDeviceService;
-    private final JwtTokenProvider jwtTokenProvider;
-
-    // ---- Signup ----
+    private final AuthService authService;
+    private final CookieUtil cookieUtil;
 
     @PostMapping("/signup")
-    public ResponseEntity<OtpResponse> signup(@Valid @RequestBody SignUpRequestDto request) {
-        Optional<User> existingOpt = userRepository.findByEmail(request.getEmail());
-
-        if (existingOpt.isPresent()) {
-            User existing = existingOpt.get();
-            if (existing.getPasswordHash() != null && !existing.getPasswordHash().isBlank()) {
-                // Already fully signed up locally
-                return ResponseEntity.badRequest()
-                        .body(new OtpResponse("ALREADY_REGISTERED", request.getEmail(), null, null));
-            }
-            // OAuth-created user with no password — attach local login
-            existing.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-            existing.setName(request.getName());
-            existing.setUpdatedAt(Instant.now());
-            userRepository.save(existing);
-        } else {
-            // New user
-            User newUser = User.builder()
-                    .email(request.getEmail())
-                    .name(request.getName())
-                    .passwordHash(passwordEncoder.encode(request.getPassword()))
-                    .emailVerified(false)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-            userRepository.save(newUser);
-        }
-
-        String rawOtp = otpService.generate(request.getEmail(), OtpService.PURPOSE_SIGNUP);
-        mailService.sendOtpEmail(request.getEmail(), rawOtp, (int) OtpService.OTP_EXPIRY.toMinutes(), OtpService.PURPOSE_SIGNUP);
-
-        return ResponseEntity.accepted()
-                .body(new OtpResponse("OTP_SENT", request.getEmail(), null, null));
+    public ResponseEntity<GlobalApiResponse<OtpResponse>> signup(@Valid @RequestBody SignUpRequestDto request) {
+        authService.signup(request);
+        return respond(HttpStatus.ACCEPTED, SuccessResponseConstant.OTP_SENT,
+                new OtpResponse(request.getEmail(), OtpPurpose.SIGNUP));
     }
 
-    // ---- Login ----
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(
+    public ResponseEntity<GlobalApiResponse<?>> login(
             @Valid @RequestBody LoginRequestDto request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse
     ) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElse(null);
+        LoginResult result = authService.login(request, cookieUtil.extractTrustedDeviceToken(httpRequest));
 
-        if (user == null || user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
-            return ResponseEntity.badRequest()
-                    .body(new OtpResponse("INVALID_CREDENTIALS", request.getEmail(), null, null));
+        if (result.otpRequired()) {
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(
+                    successResponse(customMessageSource.get(SuccessResponseConstant.OTP_REQUIRED),
+                            new OtpResponse(request.getEmail(), OtpPurpose.LOGIN)));
         }
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            return ResponseEntity.badRequest()
-                    .body(new OtpResponse("INVALID_CREDENTIALS", request.getEmail(), null, null));
-        }
-
-        // Check trusted device
-        String deviceCookie = extractCookie(httpRequest, TrustedDeviceService.COOKIE_NAME);
-        boolean isTrusted = trustedDeviceService.isTrusted(user.getId(), deviceCookie);
-
-        if (isTrusted) {
-            // Skip OTP, issue JWT directly
-            String accessToken = mintJwt(user);
-            String refreshToken = jwtTokenProvider.generateRefreshToken(toPrincipal(user));
-            return ResponseEntity.ok(new TokenResponse(accessToken));
-        }
-
-        // Not trusted — require OTP
-        String rawOtp = otpService.generate(request.getEmail(), OtpService.PURPOSE_LOGIN);
-        mailService.sendOtpEmail(request.getEmail(), rawOtp, (int) OtpService.OTP_EXPIRY.toMinutes(), OtpService.PURPOSE_LOGIN);
-
-        return ResponseEntity.accepted()
-                .body(new OtpResponse("OTP_REQUIRED", request.getEmail(), null, null));
+        writeAuthCookies(result.tokens(), httpRequest, httpResponse);
+        return ResponseEntity.ok(successResponse(customMessageSource.get(SuccessResponseConstant.LOGIN_SUCCESS),
+                new TokenResponse(result.tokens().accessToken())));
     }
-
-    // ---- OTP Verify ----
 
     @PostMapping("/otp/verify")
-    public ResponseEntity<?> verifyOtp(
+    public ResponseEntity<GlobalApiResponse<TokenResponse>> verifyOtp(
             @Valid @RequestBody VerifyOtpRequestDto request,
+            HttpServletRequest httpRequest,
             HttpServletResponse httpResponse
     ) {
-        boolean valid = otpService.verify(request.getEmail(), request.getPurpose(), request.getCode());
-
-        if (!valid) {
-            return ResponseEntity.badRequest()
-                    .body(new OtpResponse("INVALID_OTP", request.getEmail(), null, null));
-        }
-
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalStateException("User not found for verified OTP"));
-
-        // If signup purpose, mark email as verified
-        if (OtpService.PURPOSE_SIGNUP.equals(request.getPurpose())) {
-            user.setEmailVerified(true);
-            userRepository.save(user);
-        }
-
-        // Mint JWT directly (do NOT use OAuth2ExchangeCodeStore)
-        String accessToken = mintJwt(user);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(toPrincipal(user));
-
-        // Set trusted device cookie if requested
-        if (Boolean.TRUE.equals(request.getRememberMe())) {
-            String rawDeviceToken = trustedDeviceService.remember(user);
-            Cookie cookie = new Cookie(TrustedDeviceService.COOKIE_NAME, rawDeviceToken);
-            cookie.setHttpOnly(true);
-            cookie.setSecure(true);
-            cookie.setPath("/");
-            cookie.setMaxAge((int) TrustedDeviceService.REMEMBER_ME_DAYS.toSeconds());
-            cookie.setAttribute("SameSite", "Lax");
-            httpResponse.addCookie(cookie);
-        }
-
-        return ResponseEntity.ok(new TokenResponse(accessToken));
+        AuthTokens tokens = authService.verifyOtp(request);
+        writeAuthCookies(tokens, httpRequest, httpResponse);
+        return ok(SuccessResponseConstant.OTP_VERIFIED, new TokenResponse(tokens.accessToken()));
     }
-
-    // ---- OTP Resend ----
 
     @PostMapping("/otp/resend")
-    public ResponseEntity<OtpResponse> resendOtp(@Valid @RequestBody ResendOtpRequestDto request) {
-        if (!otpService.canResend(request.getEmail(), request.getPurpose())) {
-            return ResponseEntity.badRequest()
-                    .body(new OtpResponse("RESEND_COOLDOWN", request.getEmail(), null, null));
+    public ResponseEntity<GlobalApiResponse<OtpResponse>> resendOtp(@Valid @RequestBody ResendOtpRequestDto request) {
+        authService.resendOtp(request);
+        return respond(HttpStatus.ACCEPTED, SuccessResponseConstant.OTP_SENT,
+                new OtpResponse(request.getEmail(), request.getPurpose()));
+    }
+
+    /** Refresh token always, remember-me device token only when the user asked for it. */
+    private void writeAuthCookies(AuthTokens tokens, HttpServletRequest request, HttpServletResponse response) {
+        boolean secure = request.isSecure();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookieUtil.buildRefreshCookie(tokens.refreshToken(), secure).toString());
+        if (tokens.hasTrustedDeviceToken()) {
+            response.addHeader(HttpHeaders.SET_COOKIE,
+                    cookieUtil.buildTrustedDeviceCookie(tokens.trustedDeviceToken(), secure).toString());
         }
-
-        String rawOtp = otpService.generate(request.getEmail(), request.getPurpose());
-        mailService.sendOtpEmail(request.getEmail(), rawOtp, (int) OtpService.OTP_EXPIRY.toMinutes(), request.getPurpose());
-
-        return ResponseEntity.accepted()
-                .body(new OtpResponse("OTP_SENT", request.getEmail(), null, null));
     }
-
-    // ---- Helpers ----
-
-    private String mintJwt(User user) {
-        UserPrincipal principal = toPrincipal(user);
-        return jwtTokenProvider.generateToken(principal);
-    }
-
-    private UserPrincipal toPrincipal(User user) {
-        Set<SimpleGrantedAuthority> authorities = new LinkedHashSet<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
-        return UserPrincipal.localUser(
-                user.getId().toString(),
-                user.getName(),
-                user.getEmail(),
-                user.getEmail(),
-                user.getPasswordHash(),
-                authorities
-        );
-    }
-
-    private String extractCookie(HttpServletRequest request, String name) {
-        if (request.getCookies() == null) {
-            return null;
-        }
-        for (Cookie cookie : request.getCookies()) {
-            if (cookie.getName().equals(name)) {
-                return cookie.getValue();
-            }
-        }
-        return null;
-    }
-
 }

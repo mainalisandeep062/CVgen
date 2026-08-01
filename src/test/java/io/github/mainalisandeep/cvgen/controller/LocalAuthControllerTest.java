@@ -169,7 +169,7 @@ class LocalAuthControllerTest {
 
         String deviceToken = trustedDeviceService.remember(user);
 
-        var request = new LoginRequestDto("trusted@test.com", "password123", true);
+        var request = new LoginRequestDto("trusted@test.com", "password123");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -194,7 +194,7 @@ class LocalAuthControllerTest {
                 .emailVerified(true)
                 .build());
 
-        var request = new LoginRequestDto("otp@test.com", "password123", false);
+        var request = new LoginRequestDto("otp@test.com", "password123");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -215,7 +215,7 @@ class LocalAuthControllerTest {
                 .emailVerified(true)
                 .build());
 
-        var request = new LoginRequestDto("wrong@test.com", "wrongpass", false);
+        var request = new LoginRequestDto("wrong@test.com", "wrongpass");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -351,7 +351,7 @@ class LocalAuthControllerTest {
         // browser 1 is remembered, browser 2 sends no cookie
         trustedDeviceService.remember(user);
 
-        var request = new LoginRequestDto("different@test.com", "password123", true);
+        var request = new LoginRequestDto("different@test.com", "password123");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

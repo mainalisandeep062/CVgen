@@ -1,18 +1,18 @@
 package io.github.mainalisandeep.cvgen.config.constants;
 
-import lombok.NoArgsConstructor;
-
 import java.util.List;
 
-@NoArgsConstructor
+/**
+ * Request paths that bypass authentication.
+ */
 public final class MatchersConfig {
 
+    private MatchersConfig() {
+    }
+
+    /** Signup, login, OTP, token refresh and logout all live under /api/auth. */
     public static final List<String> PUBLIC_MATCHERS = List.of(
-            "/api/email/**",
-            "/api/sign-up/**",
             "/api/auth/**",
-            "/api/otp/**",
-            "/api/otp/verify-otp/**",
             "/api/webhook/**",
             "/public/**",
             "/websocket/**",
