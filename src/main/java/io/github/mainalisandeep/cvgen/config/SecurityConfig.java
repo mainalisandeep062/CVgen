@@ -2,6 +2,9 @@ package io.github.mainalisandeep.cvgen.config;
 
 import io.github.mainalisandeep.cvgen.config.constants.MatchersConfig;
 import io.github.mainalisandeep.cvgen.security.JwtAuthFilter;
+import io.github.mainalisandeep.cvgen.security.JwtTokenProvider;
+import io.github.mainalisandeep.cvgen.security.RestAccessDeniedHandler;
+import io.github.mainalisandeep.cvgen.security.RestAuthenticationEntryPoint;
 import io.github.mainalisandeep.cvgen.security.oauth2.CustomOAuth2UserService;
 import io.github.mainalisandeep.cvgen.security.oauth2.CustomOidcUserService;
 import io.github.mainalisandeep.cvgen.security.oauth2.OAuth2AuthenticationFailureHandler;
@@ -11,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -38,12 +40,17 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private static final String REGISTRATION_ID_ATTRIBUTE = "registration_id";
+    private static final String AUTHORIZATION_BASE_URI = "/oauth2/authorization";
+
     private final SecurityProperties securityProperties;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final CustomOidcUserService customOidcUserService;
     private final OAuth2AuthenticationSuccessHandler successHandler;
     private final OAuth2AuthenticationFailureHandler failureHandler;
     private final ClientRegistrationRepository clientRegistrationRepository;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final RestAccessDeniedHandler restAccessDeniedHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
@@ -67,14 +74,14 @@ public class SecurityConfig {
                         .failureHandler(failureHandler)
                 )
                 .logout(logout -> logout
-                        .logoutUrl("/logout")
+                        .logoutUrl(securityProperties.getLogoutUrl())
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .logoutSuccessUrl(securityProperties.getOauth2().getSuccessRedirectUri())
                 )
                 .exceptionHandling(exceptionHandling -> exceptionHandling
-                        .authenticationEntryPoint((request, response, authException) -> response.sendError(HttpStatus.UNAUTHORIZED.value(), "Unauthorized"))
-                        .accessDeniedHandler((request, response, accessDeniedException) -> response.sendError(HttpStatus.FORBIDDEN.value(), "Forbidden"))
+                        .authenticationEntryPoint(restAuthenticationEntryPoint)
+                        .accessDeniedHandler(restAccessDeniedHandler)
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -84,8 +91,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtAuthFilter jwtAuthFilter(io.github.mainalisandeep.cvgen.security.JwtTokenProvider jwtTokenProvider) {
-        return new JwtAuthFilter(jwtTokenProvider);
+    public JwtAuthFilter jwtAuthFilter(JwtTokenProvider jwtTokenProvider) {
+        return new JwtAuthFilter(jwtTokenProvider, securityProperties);
     }
 
     @Bean
@@ -99,7 +106,7 @@ public class SecurityConfig {
 
         DefaultOAuth2AuthorizationRequestResolver defaultResolver =
                 new DefaultOAuth2AuthorizationRequestResolver(
-                        clientRegistrationRepository, "/oauth2/authorization");
+                        clientRegistrationRepository, AUTHORIZATION_BASE_URI);
 
         return new OAuth2AuthorizationRequestResolver() {
             @Override
@@ -113,7 +120,9 @@ public class SecurityConfig {
             }
 
             private OAuth2AuthorizationRequest strip(OAuth2AuthorizationRequest req) {
-                if (req == null || !"linkedin".equals(req.getAttribute("registration_id"))) {
+                // LinkedIn rejects the OIDC nonce parameter, so it is stripped for that provider only
+                if (req == null || !securityProperties.getOauth2().getLinkedinProviderId()
+                        .equals(req.getAttribute(REGISTRATION_ID_ATTRIBUTE))) {
                     return req;
                 }
                 Map<String, Object> attrs = new LinkedHashMap<>(req.getAttributes());

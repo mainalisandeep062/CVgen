@@ -29,9 +29,6 @@ public class SecurityProperties {
     private Cors cors = new Cors();
 
     @Valid
-    private Messages messages = new Messages();
-
-    @Valid
     private Async async = new Async();
 
     @Valid
@@ -103,17 +100,6 @@ public class SecurityProperties {
         private List<String> exposedHeaders;
 
         private boolean allowCredentials = true;
-    }
-
-
-    @Data
-    public static class Messages {
-
-        @NotBlank
-        private String unauthorized;
-
-        @NotBlank
-        private String forbidden;
     }
 
 

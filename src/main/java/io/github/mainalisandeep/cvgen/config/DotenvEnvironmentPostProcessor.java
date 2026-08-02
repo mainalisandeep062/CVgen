@@ -93,14 +93,11 @@ public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor,
         String[] lines = content.split("\r?\n");
         for (String line : lines) {
             String trimmed = line.trim();
-            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+            int equalsIndex = trimmed.indexOf('=');
+            if (trimmed.isEmpty() || trimmed.startsWith("#") || equalsIndex <= 0) {
                 continue;
             }
 
-            int equalsIndex = trimmed.indexOf('=');
-            if (equalsIndex <= 0) {
-                continue;
-            }
 
             String key = trimmed.substring(0, equalsIndex).trim();
             String value = trimmed.substring(equalsIndex + 1);

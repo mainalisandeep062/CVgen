@@ -4,6 +4,7 @@ import java.util.Map;
 
 public class GithubOAuth2UserInfo extends OAuth2UserInfo {
 
+	public static final String LOGIN = "login";
 	public GithubOAuth2UserInfo(Map<String, Object> attributes) {
 		super(attributes);
 	}
@@ -15,12 +16,12 @@ public class GithubOAuth2UserInfo extends OAuth2UserInfo {
 
 	@Override
 	public String getName() {
-		return firstNonBlank(getString("name"), getString("login"), getEmail(), getId());
+		return firstNonBlank(getString("name"), getString(LOGIN), getEmail(), getId());
 	}
 
 	@Override
 	public String getEmail() {
-		return firstNonBlank(getString("email"), getString("login") == null ? null : getString("login") + "@users.noreply.github.com");
+		return firstNonBlank(getString("email"), getString(LOGIN) == null ? null : getString(LOGIN) + "@users.noreply.github.com");
 	}
 
 	@Override

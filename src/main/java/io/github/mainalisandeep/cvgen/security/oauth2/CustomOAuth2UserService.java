@@ -25,6 +25,10 @@ import java.util.Set;
 @Service
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
+    //String literals should not be duplicated
+    //Detected by SonarQube, string literals should not be duplicated to avoid inconsistencies and facilitate maintenance.
+    private static final String EMAIL = "email";
+
     private final DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
     private final OAuth2UserResolver oAuth2UserResolver;
     private final OAuth2UserInfoFactory userInfoFactory;
@@ -98,8 +102,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                         Object verified = emailEntry.get("verified");
                         attributes.put("email_verified", Boolean.TRUE.equals(verified) || "true".equals(String.valueOf(verified)));
                         // Also use the primary email if the /user endpoint didn't have one
-                        if (!attributes.containsKey("email") || attributes.get("email") == null) {
-                            attributes.put("email", emailEntry.get("email"));
+                        if (!attributes.containsKey(EMAIL) || attributes.get(EMAIL) == null) {
+                            attributes.put(EMAIL, emailEntry.get(EMAIL));
                         }
                         break;
                     }

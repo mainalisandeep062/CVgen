@@ -1,7 +1,6 @@
 package io.github.mainalisandeep.cvgen.security;
 
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
@@ -28,7 +27,7 @@ public final class UserPrincipal implements UserDetails, OAuth2User, IdentifiedP
     private final String imageUrl;
     private final String password;
     private final Set<GrantedAuthority> authorities;
-    private final Map<String, Object> attributes;
+    private transient final Map<String, Object> attributes;
 
     public UserPrincipal(
             String id,
