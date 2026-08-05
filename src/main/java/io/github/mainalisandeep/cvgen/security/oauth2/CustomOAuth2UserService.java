@@ -6,6 +6,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -28,10 +30,21 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
     //String literals should not be duplicated
     //Detected by SonarQube, string literals should not be duplicated to avoid inconsistencies and facilitate maintenance.
     private static final String EMAIL = "email";
+    private static final String EMAIL_VERIFIED = "email_verified";
+
+    private static final URI GITHUB_EMAILS_URI = URI.create("https://api.github.com/user/emails");
+    private static final Duration GITHUB_CONNECT_TIMEOUT = Duration.ofSeconds(3);
+    private static final Duration GITHUB_READ_TIMEOUT = Duration.ofSeconds(5);
 
     private final DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
     private final OAuth2UserResolver oAuth2UserResolver;
     private final OAuth2UserInfoFactory userInfoFactory;
+
+    /**
+     * The GitHub call runs inside the login request thread, so the timeouts are
+     * not optional: without them a hanging response stalls authentication.
+     */
+    private final RestTemplate githubRestTemplate;
 
     public CustomOAuth2UserService(
             OAuth2UserResolver oAuth2UserResolver,
@@ -39,6 +52,11 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
     ) {
         this.oAuth2UserResolver = oAuth2UserResolver;
         this.userInfoFactory = userInfoFactory;
+
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(GITHUB_CONNECT_TIMEOUT);
+        requestFactory.setReadTimeout(GITHUB_READ_TIMEOUT);
+        this.githubRestTemplate = new RestTemplate(requestFactory);
     }
 
     @Override
@@ -77,41 +95,51 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         );
     }
 
-    private void enrichGithubEmailVerification(OAuth2UserRequest userRequest, Map<String, Object> attributes) {
+    /**
+     * The verified flag only describes the primary email, so both values have to be
+     * written together. Overwriting the /user email with a verified flag that belongs
+     * to a different address would let OAuth2UserResolver auto-link the wrong account.
+     */
+    void enrichGithubEmailVerification(OAuth2UserRequest userRequest, Map<String, Object> attributes) {
+        // Fail closed: anything short of a confirmed primary email leaves the account unverified
+        attributes.put(EMAIL_VERIFIED, false);
         try {
             String accessToken = userRequest.getAccessToken().getTokenValue();
-            RestTemplate restTemplate = new RestTemplate();
 
             RequestEntity<Void> request = RequestEntity
-                    .get(URI.create("https://api.github.com/user/emails"))
+                    .get(GITHUB_EMAILS_URI)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                     .header(HttpHeaders.ACCEPT, "application/vnd.github+json")
                     .build();
 
-            ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+            ResponseEntity<List<Map<String, Object>>> response = githubRestTemplate.exchange(
                     request,
                     new ParameterizedTypeReference<>() {}
             );
 
             List<Map<String, Object>> emails = response.getBody();
-            if (emails != null) {
-                // Find primary email and use its verified status
-                for (Map<String, Object> emailEntry : emails) {
-                    Object primary = emailEntry.get("primary");
-                    if (Boolean.TRUE.equals(primary) || "true".equals(String.valueOf(primary))) {
-                        Object verified = emailEntry.get("verified");
-                        attributes.put("email_verified", Boolean.TRUE.equals(verified) || "true".equals(String.valueOf(verified)));
-                        // Also use the primary email if the /user endpoint didn't have one
-                        if (!attributes.containsKey(EMAIL) || attributes.get(EMAIL) == null) {
-                            attributes.put(EMAIL, emailEntry.get(EMAIL));
-                        }
-                        break;
-                    }
+            if (emails == null) {
+                return;
+            }
+
+            // Find primary email and use it, together with its verified status
+            for (Map<String, Object> emailEntry : emails) {
+                if (!Boolean.TRUE.equals(emailEntry.get("primary"))) {
+                    continue;
                 }
+                Object primaryEmail = emailEntry.get(EMAIL);
+                if (primaryEmail == null || String.valueOf(primaryEmail).isBlank()) {
+                    // Keep whatever /user returned, but never claim it is verified:
+                    // the flag we just read belongs to an address we did not get
+                    return;
+                }
+                attributes.put(EMAIL, String.valueOf(primaryEmail));
+                attributes.put(EMAIL_VERIFIED, Boolean.TRUE.equals(emailEntry.get("verified")));
+                return;
             }
         } catch (Exception e) {
             // If the API call fails, default to not verified
-            attributes.put("email_verified", false);
+            attributes.put(EMAIL_VERIFIED, false);
         }
     }
 
