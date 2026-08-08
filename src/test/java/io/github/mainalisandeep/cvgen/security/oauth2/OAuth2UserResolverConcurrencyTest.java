@@ -4,6 +4,7 @@ import io.github.mainalisandeep.cvgen.entity.User;
 import io.github.mainalisandeep.cvgen.entity.UserIdentity;
 import io.github.mainalisandeep.cvgen.repository.UserIdentityRepository;
 import io.github.mainalisandeep.cvgen.repository.UserRepository;
+import io.github.mainalisandeep.cvgen.support.PostgresContainerSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class OAuth2UserResolverConcurrencyTest {
+class OAuth2UserResolverConcurrencyTest extends PostgresContainerSupport {
 
     @Autowired
     private OAuth2UserResolver resolver;

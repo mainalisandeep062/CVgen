@@ -14,6 +14,7 @@ import io.github.mainalisandeep.cvgen.repository.UserRepository;
 import io.github.mainalisandeep.cvgen.security.util.CookieUtil;
 import io.github.mainalisandeep.cvgen.service.OtpService;
 import io.github.mainalisandeep.cvgen.service.TrustedDeviceService;
+import io.github.mainalisandeep.cvgen.support.PostgresContainerSupport;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional
-class LocalAuthControllerTest {
+class LocalAuthControllerTest extends PostgresContainerSupport {
 
     @Autowired
     private MockMvc mockMvc;
