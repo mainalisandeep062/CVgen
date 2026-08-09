@@ -41,6 +41,7 @@ public class JwtTokenProvider {
     public static final String CLAIM_IMAGE_URL = "imageUrl";
     public static final String CLAIM_AUTHORITIES = "authorities";
     public static final String CLAIM_TYPE = "type";
+    public static final String CLAIM_JTI = "jti";
 
     private static final Logger log = LoggerFactory.getLogger(JwtTokenProvider.class);
 
@@ -59,11 +60,29 @@ public class JwtTokenProvider {
         return buildToken(principal, now, expiration, ClaimType.ACCESS.getValue());
     }
 
-    public String generateRefreshToken(UserPrincipal principal) {
+    public String generateRefreshToken(UserPrincipal principal, UUID tokenId) {
         Objects.requireNonNull(principal, "principal must not be null");
         Instant now = Instant.now();
         Instant expiration = now.plus(REFRESH_TOKEN_TTL);
-        return buildToken(principal, now, expiration, ClaimType.REFRESH.getValue());
+        return Jwts.builder()
+                .id(tokenId.toString())
+                .subject(principal.getUsername())
+                .issuer(securityProperties.getJwt().getIssuer())
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(expiration))
+                .claim(CLAIM_ID, principal.getId())
+                .claim(CLAIM_PROVIDER, principal.getProvider())
+                .claim(CLAIM_NAME, principal.getName())
+                .claim(CLAIM_EMAIL, principal.getEmail())
+                .claim(CLAIM_IMAGE_URL, principal.getImageUrl())
+                .claim(CLAIM_AUTHORITIES, principal.authorityNames())
+                .claim(CLAIM_TYPE, ClaimType.REFRESH.getValue())
+                .signWith(secretKey)
+                .compact();
+    }
+
+    public UUID getTokenIdFromToken(String token) {
+        return UUID.fromString(parseClaims(token).getId()); // reads the JWT `jti`
     }
 
     private String buildToken(UserPrincipal principal, Instant issuedAt, Instant expiration, String type) {

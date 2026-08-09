@@ -2,7 +2,7 @@ package io.github.mainalisandeep.cvgen.security.util;
 
 import io.github.mainalisandeep.cvgen.config.SecurityProperties;
 import io.github.mainalisandeep.cvgen.security.JwtTokenProvider;
-import io.github.mainalisandeep.cvgen.service.TrustedDeviceService;
+import io.github.mainalisandeep.cvgen.service.impl.TrustedDeviceService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseCookie;
