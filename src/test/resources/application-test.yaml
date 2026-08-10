@@ -1,9 +1,7 @@
+# spring.datasource.* is supplied at runtime by PostgresContainerSupport via
+# @DynamicPropertySource. Tests run against a real PostgreSQL container, so nothing
+# is hardcoded here.
 spring:
-  datasource:
-    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
   jpa:
     hibernate:
       ddl-auto: none

@@ -28,6 +28,12 @@
     </scm>
     <properties>
         <java.version>17</java.version>
+        <!--
+          Overrides the version managed by spring-boot-dependencies (1.20.4), which negotiates
+          Docker API 1.32. Docker Engine 29 refuses anything below 1.40:
+          "client version 1.32 is too old. Minimum supported API version is 1.40".
+        -->
+        <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
     <dependencies>
         <dependency>
@@ -76,11 +82,6 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
@@ -115,6 +116,16 @@
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+          Integration tests run against a real PostgreSQL container, not an in-memory shim.
+          H2 (MODE=PostgreSQL) could not parse the partial unique index in changeset 001, so
+          Postgres-only DDL had to be fenced behind dbms="postgresql" and went untested.
+        -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

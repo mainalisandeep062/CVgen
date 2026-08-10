@@ -4,6 +4,7 @@ import io.github.mainalisandeep.cvgen.entity.User;
 import io.github.mainalisandeep.cvgen.repository.UserIdentityRepository;
 import io.github.mainalisandeep.cvgen.repository.UserRepository;
 import io.github.mainalisandeep.cvgen.security.IdentifiedPrincipal;
+import io.github.mainalisandeep.cvgen.support.PostgresContainerSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-class CustomOidcUserServiceTest {
+class CustomOidcUserServiceTest extends PostgresContainerSupport {
 
     @Autowired
     private CustomOidcUserService customOidcUserService;
