@@ -1,4 +1,4 @@
-package io.github.mainalisandeep.cvgen.service;
+package io.github.mainalisandeep.cvgen.service.impl;
 
 import io.github.mainalisandeep.cvgen.entity.OtpCode;
 import io.github.mainalisandeep.cvgen.enums.OtpPurpose;
