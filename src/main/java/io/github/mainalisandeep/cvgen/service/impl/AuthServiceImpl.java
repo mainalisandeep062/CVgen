@@ -22,8 +22,6 @@ import io.github.mainalisandeep.cvgen.security.UserPrincipal;
 import io.github.mainalisandeep.cvgen.security.oauth2.OAuth2ExchangeCodeStore;
 import io.github.mainalisandeep.cvgen.service.AuthService;
 import io.github.mainalisandeep.cvgen.service.MailService;
-import io.github.mainalisandeep.cvgen.service.OtpService;
-import io.github.mainalisandeep.cvgen.service.TrustedDeviceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -43,6 +41,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final OAuth2ExchangeCodeStore exchangeCodeStore;
     private final UserMapper userMapper;
+    private final RefreshTokenService refreshTokenService;
 
     @Override
     @Transactional
@@ -118,10 +117,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthTokens refresh(String refreshToken) {
-        if (refreshToken == null || !jwtTokenProvider.validateRefreshToken(refreshToken)) {
-            throw new UnauthorizedException(ErrorConstantValue.REFRESH_TOKEN_INVALID);
-        }
-        return issueTokens(findUser(jwtTokenProvider.getUserIdFromToken(refreshToken)), false);
+        String newRefreshToken = refreshTokenService.rotate(refreshToken);
+        UUID userId = jwtTokenProvider.getUserIdFromToken(newRefreshToken);
+        UserPrincipal principal = userMapper.toPrincipal(findUser(userId));
+        return new AuthTokens(jwtTokenProvider.generateToken(principal), newRefreshToken, null);
     }
 
     private User findUser(UUID userId) {
@@ -133,7 +132,7 @@ public class AuthServiceImpl implements AuthService {
         UserPrincipal principal = userMapper.toPrincipal(user);
         return new AuthTokens(
                 jwtTokenProvider.generateToken(principal),
-                jwtTokenProvider.generateRefreshToken(principal),
+                refreshTokenService.issueNewFamily(user),
                 rememberDevice ? trustedDeviceService.remember(user) : null
         );
     }

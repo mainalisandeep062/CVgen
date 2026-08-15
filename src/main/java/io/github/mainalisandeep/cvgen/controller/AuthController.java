@@ -3,11 +3,14 @@ package io.github.mainalisandeep.cvgen.controller;
 import io.github.mainalisandeep.cvgen.common.controller.BaseController;
 import io.github.mainalisandeep.cvgen.common.message.SuccessResponseConstant;
 import io.github.mainalisandeep.cvgen.common.response.GlobalApiResponse;
+import io.github.mainalisandeep.cvgen.enums.RevocationReason;
 import io.github.mainalisandeep.cvgen.records.AuthTokens;
 import io.github.mainalisandeep.cvgen.records.ExchangeCodeRequest;
 import io.github.mainalisandeep.cvgen.records.TokenResponse;
 import io.github.mainalisandeep.cvgen.security.util.CookieUtil;
+import io.github.mainalisandeep.cvgen.security.util.JwtTokenUtil;
 import io.github.mainalisandeep.cvgen.service.AuthService;
+import io.github.mainalisandeep.cvgen.service.impl.RefreshTokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -21,6 +24,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.UUID;
+
 /**
  * Token endpoints shared by the OAuth2 and local flows.
  */
@@ -31,6 +36,8 @@ public class AuthController extends BaseController {
 
     private final AuthService authService;
     private final CookieUtil cookieUtil;
+    private final RefreshTokenService refreshTokenService;
+    private final JwtTokenUtil jwtTokenUtil;
 
     @PostMapping("/oauth/exchange")
     public ResponseEntity<GlobalApiResponse<TokenResponse>> exchangeCode(
@@ -57,10 +64,18 @@ public class AuthController extends BaseController {
      */
     @PostMapping("/logout")
     public ResponseEntity<GlobalApiResponse<Object>> logout(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+        refreshTokenService.revoke(cookieUtil.extractRefreshToken(httpRequest), RevocationReason.LOGOUT);
         HttpSession session = httpRequest.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
+        if (session != null) session.invalidate();
+        SecurityContextHolder.clearContext();
+        httpResponse.addHeader(HttpHeaders.SET_COOKIE, cookieUtil.clearRefreshCookie(httpRequest.isSecure()).toString());
+        return ok(SuccessResponseConstant.LOGOUT_SUCCESS, null);
+    }
+
+    @PostMapping("/logout-all")
+    public ResponseEntity<GlobalApiResponse<Object>> logoutAll(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+        UUID userId = jwtTokenUtil.getCurrentUserId()/* pull from SecurityContext, same as any authenticated endpoint */;
+        refreshTokenService.revokeAllForUser(userId);
         SecurityContextHolder.clearContext();
         httpResponse.addHeader(HttpHeaders.SET_COOKIE, cookieUtil.clearRefreshCookie(httpRequest.isSecure()).toString());
         return ok(SuccessResponseConstant.LOGOUT_SUCCESS, null);
