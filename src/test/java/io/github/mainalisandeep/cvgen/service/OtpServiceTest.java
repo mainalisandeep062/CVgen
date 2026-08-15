@@ -3,6 +3,7 @@ package io.github.mainalisandeep.cvgen.service;
 import io.github.mainalisandeep.cvgen.entity.OtpCode;
 import io.github.mainalisandeep.cvgen.enums.OtpPurpose;
 import io.github.mainalisandeep.cvgen.repository.OtpCodeRepository;
+import io.github.mainalisandeep.cvgen.service.impl.OtpService;
 import io.github.mainalisandeep.cvgen.support.PostgresContainerSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
