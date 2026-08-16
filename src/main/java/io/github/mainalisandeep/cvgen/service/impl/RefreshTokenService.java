@@ -27,6 +27,7 @@ public class RefreshTokenService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserMapper userMapper;
+    private final RefreshTokenRevoker revoker;
 
     @Transactional
     public String issueNewFamily(User user) {
@@ -50,7 +51,8 @@ public class RefreshTokenService {
 
         if (stored.getRevokedAt() != null) {
             // Already-rotated token presented again = replay/theft. Nuke the whole chain.
-            revokeFamily(stored.getFamilyId(), RevocationReason.REUSE_DETECTED);
+            // Committed in its own transaction: the throw below would otherwise roll it back.
+            revoker.revokeCompromisedFamily(stored.getFamilyId(), stored.getId());
             throw new UnauthorizedException(ErrorConstantValue.REFRESH_TOKEN_REUSED);
         }
         if (stored.getExpiresAt().isBefore(Instant.now())) {
@@ -79,16 +81,6 @@ public class RefreshTokenService {
                 t.setRevokedAt(Instant.now());
                 t.setRevocationReason(reason);
                 repo.save(t);
-            }
-        });
-    }
-
-    @Transactional
-    public void revokeFamily(UUID familyId, RevocationReason reason) {
-        repo.findByFamilyId(familyId).forEach(t -> {
-            if (t.getRevokedAt() == null) {
-                t.setRevokedAt(Instant.now());
-                t.setRevocationReason(reason);
             }
         });
     }
