@@ -26,4 +26,5 @@ public final class ErrorConstantValue {
     public static final String REQUEST_MALFORMED = "error.request.malformed";
     public static final String METHOD_NOT_ALLOWED = "error.method.not.allowed";
     public static final String INTERNAL_SERVER = "error.internal.server";
+    public static final String REFRESH_TOKEN_REUSED = "error.refresh.token.reused";
 }
