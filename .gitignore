@@ -33,3 +33,5 @@ build/
 .vscode/
 .env
 .claude
+# Local blob storage root (app.storage.local-root); replaced by the R2 bucket later.
+storage/
