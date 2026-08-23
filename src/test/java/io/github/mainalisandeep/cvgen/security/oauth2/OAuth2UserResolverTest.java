@@ -19,6 +19,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -156,5 +157,57 @@ class OAuth2UserResolverTest extends PostgresContainerSupport {
 
         assertThat(first.getId()).isEqualTo(second.getId());
         assertThat(userIdentityRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Each identity keeps its own provider avatar URL")
+    void storesAvatarUrlPerIdentity() {
+        resolver.resolve("google", Map.of(
+                "sub", "google-avatar-1",
+                "name", "Avatar User",
+                "email", "avatar@example.com",
+                "email_verified", true,
+                "picture", "https://cdn.google.test/a.png"
+        ));
+        resolver.resolve("github", Map.of(
+                "id", "github-avatar-1",
+                "login", "avataruser",
+                "name", "Avatar User",
+                "email", "avatar@example.com",
+                "email_verified", true,
+                "avatar_url", "https://cdn.github.test/b.png"
+        ));
+
+        var identities = userIdentityRepository.findAll();
+        assertThat(identities).hasSize(2);
+        assertThat(identities)
+                .extracting(UserIdentity::getProvider, UserIdentity::getAvatarUrlAtProvider)
+                .containsExactlyInAnyOrder(
+                        tuple("google", "https://cdn.google.test/a.png"),
+                        tuple("github", "https://cdn.github.test/b.png"));
+    }
+
+    @Test
+    @DisplayName("Re-login refreshes the stored avatar URL, since provider CDN links rotate")
+    void reLoginRefreshesAvatarUrl() {
+        resolver.resolve("google", Map.of(
+                "sub", "google-rotate-1",
+                "name", "Rotating",
+                "email", "rotate@example.com",
+                "email_verified", true,
+                "picture", "https://cdn.google.test/old.png"
+        ));
+
+        resolver.resolve("google", Map.of(
+                "sub", "google-rotate-1",
+                "name", "Rotating",
+                "email", "rotate@example.com",
+                "email_verified", true,
+                "picture", "https://cdn.google.test/new.png"
+        ));
+
+        var identities = userIdentityRepository.findAll();
+        assertThat(identities).hasSize(1);
+        assertThat(identities.get(0).getAvatarUrlAtProvider()).isEqualTo("https://cdn.google.test/new.png");
     }
 }

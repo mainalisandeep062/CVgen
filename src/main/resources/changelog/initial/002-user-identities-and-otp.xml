@@ -138,4 +138,24 @@
         </rollback>
     </changeSet>
 
+    <!--
+        The avatar URL a provider reported for an identity, refreshed on every login.
+        A remote pointer, not a file we own: provider CDNs rotate these and LinkedIn signs
+        them with an expiry, so nothing renders straight from this column. It is the menu the
+        user picks from, and the source the stored copy is taken from.
+        VARCHAR(512) because signed CDN URLs run well past 255.
+    -->
+    <changeSet id="002-user-identity-avatar-url" author="sandeep mainali">
+
+        <addColumn tableName="user_identities">
+            <column name="avatar_url_at_provider" type="VARCHAR(512)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="user_identities" columnName="avatar_url_at_provider"/>
+        </rollback>
+    </changeSet>
+
 </databaseChangeLog>

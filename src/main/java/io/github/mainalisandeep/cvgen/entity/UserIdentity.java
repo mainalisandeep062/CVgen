@@ -34,4 +34,14 @@ public class UserIdentity extends BaseEntity {
 
     @Column(name = "email_at_provider")
     private String emailAtProvider;
+
+    /**
+     * Avatar URL this provider last reported, refreshed on every login.
+     * <p>
+     * A remote pointer, not a file: provider CDNs rotate it and LinkedIn signs it with an
+     * expiry, so it is never rendered directly. It is the menu the user picks from, and the
+     * source a {@link StoredFile} copy is taken from.
+     */
+    @Column(name = "avatar_url_at_provider", length = 512)
+    private String avatarUrlAtProvider;
 }
