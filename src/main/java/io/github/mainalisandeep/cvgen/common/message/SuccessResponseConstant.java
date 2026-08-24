@@ -18,4 +18,7 @@ public final class SuccessResponseConstant {
     public static final String LOGIN_SUCCESS = "success.login";
     public static final String LOGOUT_SUCCESS = "success.logout";
     public static final String TOKEN_REFRESHED = "success.token.refreshed";
+
+    public static final String PROFILE_PICTURE_UPDATED = "success.profile.picture.updated";
+    public static final String PROFILE_PICTURE_REMOVED = "success.profile.picture.removed";
 }

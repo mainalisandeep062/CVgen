@@ -15,4 +15,8 @@ public final class FieldConstantValue {
     public static final String TRUSTED_DEVICE = "Trusted device";
     public static final String REFRESH_TOKEN = "Refresh token";
     public static final String EXCHANGE_CODE = "Exchange code";
+    public static final String PROFILE_PICTURE_URL = "Profile picture URL";
+    public static final String PROFILE_PICTURE = "Profile picture";
+    public static final String PROFILE_PICTURE_OPTIONS = "Profile picture options";
+    public static final String USER_IDENTITY = "Linked account";
 }

@@ -3,9 +3,11 @@ package io.github.mainalisandeep.cvgen.controller;
 import io.github.mainalisandeep.cvgen.common.controller.BaseController;
 import io.github.mainalisandeep.cvgen.common.message.SuccessResponseConstant;
 import io.github.mainalisandeep.cvgen.common.response.GlobalApiResponse;
+import io.github.mainalisandeep.cvgen.enums.OtpPurpose;
 import io.github.mainalisandeep.cvgen.enums.RevocationReason;
 import io.github.mainalisandeep.cvgen.records.AuthTokens;
 import io.github.mainalisandeep.cvgen.records.ExchangeCodeRequest;
+import io.github.mainalisandeep.cvgen.records.OtpResponse;
 import io.github.mainalisandeep.cvgen.records.TokenResponse;
 import io.github.mainalisandeep.cvgen.security.util.CookieUtil;
 import io.github.mainalisandeep.cvgen.security.util.JwtTokenUtil;
@@ -17,6 +19,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -47,14 +50,18 @@ public class AuthController extends BaseController {
 
         AuthTokens tokens = authService.exchangeOAuth2Code(request.code());
         writeRefreshCookie(tokens, httpRequest, httpResponse);
-        return ok(SuccessResponseConstant.LOGIN_SUCCESS, new TokenResponse(tokens.accessToken()));
+        return ResponseEntity.status(HttpStatus.OK).body(
+                successResponse(customMessageSource.get(SuccessResponseConstant.LOGIN_SUCCESS),
+                        new TokenResponse(tokens.accessToken())));
+
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<GlobalApiResponse<TokenResponse>> refresh(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         AuthTokens tokens = authService.refresh(cookieUtil.extractRefreshToken(httpRequest));
         writeRefreshCookie(tokens, httpRequest, httpResponse);
-        return ok(SuccessResponseConstant.TOKEN_REFRESHED, new TokenResponse(tokens.accessToken()));
+        return ResponseEntity.status(HttpStatus.OK).body(
+                successResponse(customMessageSource.get(SuccessResponseConstant.TOKEN_REFRESHED), new TokenResponse(tokens.accessToken())));
     }
 
     /**
@@ -69,7 +76,8 @@ public class AuthController extends BaseController {
         if (session != null) session.invalidate();
         SecurityContextHolder.clearContext();
         httpResponse.addHeader(HttpHeaders.SET_COOKIE, cookieUtil.clearRefreshCookie(httpRequest.isSecure()).toString());
-        return ok(SuccessResponseConstant.LOGOUT_SUCCESS, null);
+        return ResponseEntity.status(HttpStatus.OK).body(
+                successResponse(customMessageSource.get(SuccessResponseConstant.LOGOUT_SUCCESS)));
     }
 
     @PostMapping("/logout-all")
@@ -78,7 +86,9 @@ public class AuthController extends BaseController {
         refreshTokenService.revokeAllForUser(userId);
         SecurityContextHolder.clearContext();
         httpResponse.addHeader(HttpHeaders.SET_COOKIE, cookieUtil.clearRefreshCookie(httpRequest.isSecure()).toString());
-        return ok(SuccessResponseConstant.LOGOUT_SUCCESS, null);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                successResponse(customMessageSource.get(SuccessResponseConstant.LOGOUT_SUCCESS)));
     }
 
     /** Refresh tokens are rotated on every use and only ever travel in an HttpOnly cookie. */
