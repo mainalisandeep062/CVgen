@@ -64,15 +64,23 @@ public final class UserPrincipal implements UserDetails, OAuth2User, IdentifiedP
         return new UserPrincipal(id, provider, name, username, email, imageUrl, "", authorities, attributes);
     }
 
+    /**
+     * Principal rebuilt from stored state rather than a provider handshake.
+     * <p>
+     * {@code imageUrl} is passed in because the {@code imageUrl} token claim has to survive a
+     * refresh: rotation mints the next access token from this principal, so anything not carried
+     * here silently disappears from the client's token on the first refresh.
+     */
     public static UserPrincipal localUser(
             String id,
             String name,
             String username,
             String email,
             String password,
+            String imageUrl,
             Collection<? extends GrantedAuthority> authorities
     ) {
-        return new UserPrincipal(id, "local", name, username, email, null, password, authorities, Collections.emptyMap());
+        return new UserPrincipal(id, "local", name, username, email, imageUrl, password, authorities, Collections.emptyMap());
     }
 
     @Override

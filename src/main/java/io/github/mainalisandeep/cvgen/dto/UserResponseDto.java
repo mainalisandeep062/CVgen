@@ -26,6 +26,9 @@ public class UserResponseDto {
 
     private Boolean isEmailVerified;
 
+    /** Ready to use in {@code <img src>}; null when the user has no picture set. */
+    private String profilePictureUrl;
+
     @Builder.Default
     private List<String> providers = new ArrayList<>();
 }
