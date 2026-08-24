@@ -16,7 +16,10 @@ public final class MatchersConfig {
             "/api/webhook/**",
             "/public/**",
             "/websocket/**",
-            "/oauth2/logout"
+            "/oauth2/logout",
+            // Avatars render from <img src>, which cannot send a bearer token. Scoped to this one
+            // path on purpose: it must not widen to /api/files/**, where CV PDFs will live.
+            "/api/files/avatars/*"
     );
 
     public static final List<String> SWAGGER_MATCHERS = List.of(
