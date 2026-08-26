@@ -27,4 +27,15 @@ public final class ErrorConstantValue {
     public static final String METHOD_NOT_ALLOWED = "error.method.not.allowed";
     public static final String INTERNAL_SERVER = "error.internal.server";
     public static final String REFRESH_TOKEN_REUSED = "error.refresh.token.reused";
+
+    public static final String FILE_EMPTY = "error.file.empty";
+    public static final String FILE_TOO_LARGE = "error.file.too.large";
+    public static final String FILE_TYPE_UNSUPPORTED = "error.file.type.unsupported";
+    public static final String FILE_STORAGE_FAILED = "error.file.storage.failed";
+
+    /** The linked account reports no avatar to copy. */
+    public static final String PROFILE_PICTURE_UNAVAILABLE = "error.profile.picture.unavailable";
+
+    /** The provider's avatar URL could not be fetched, or did not return a usable image. */
+    public static final String PROFILE_PICTURE_FETCH_FAILED = "error.profile.picture.fetch.failed";
 }

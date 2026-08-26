@@ -88,6 +88,9 @@ class CustomOidcUserServiceTest extends PostgresContainerSupport {
             OAuth2UserResolver resolver = new OAuth2UserResolver(
                     userRepository, userIdentityRepository,
                     new OAuth2UserInfoFactory("google", "github", "linkedin", "unsupported"),
+                    // Profile-picture seeding is published, not called: discarding the event here
+                    // keeps this test about resolution only.
+                    event -> { },
                     "email_unverified_conflict"
             );
             resolved = resolver.resolve("google", claims);
