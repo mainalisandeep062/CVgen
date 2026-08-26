@@ -45,6 +45,12 @@ spring:
     open-in-view: false
   liquibase:
     change-log: classpath:changelog/changelog-master.xml
+  servlet:
+    multipart:
+      # Container-level cap, deliberately above app.storage.upload.max-profile-picture-bytes so an
+      # oversized picture is rejected as a readable validation error rather than a raw 413.
+      max-file-size: ${STORAGE_MAX_UPLOAD_SIZE:4MB}
+      max-request-size: ${STORAGE_MAX_UPLOAD_SIZE:4MB}
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:587}
@@ -95,3 +101,10 @@ app:
     thread-name-prefix: ${ASYNC_THREAD_NAME_PREFIX:cvgen-async-}
   web:
     assets-cache-period: ${WEB_ASSETS_CACHE_PERIOD}
+  storage:
+    # Local disk for now; swapping in R2 replaces the FileStorageService bean, not these callers.
+    local-root: ${STORAGE_LOCAL_ROOT:storage}
+    # Origin the frontend prefixes file URLs with. Leave blank only when API and page share an origin.
+    public-base-url: ${STORAGE_PUBLIC_BASE_URL:}
+    upload:
+      max-profile-picture-bytes: ${STORAGE_MAX_PROFILE_PICTURE_BYTES:2097152}

@@ -46,3 +46,7 @@ app:
     thread-name-prefix: cvgen-test-async-
   web:
     assets-cache-period: 3600
+  storage:
+    # Under target/ so a test run never leaves blobs in the working tree.
+    local-root: target/test-storage
+    public-base-url: ""

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+        One row per blob we own at a storage key we control: profile pictures now,
+        generated CV PDFs next.
+        Owners point at files; files never point back at their owner. There is no
+        owner_type/owner_id pair here on purpose - a polymorphic owner cannot carry a
+        foreign key, so it buys genericity by giving up referential integrity.
+        source_identity_id / source_url are provenance only ("synced from Google",
+        skip a re-download when the provider URL has not moved). Nothing reads
+        through them to display an image.
+    -->
+    <changeSet id="005-create-files-table" author="sandeep mainali">
+
+        <createTable tableName="files">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <!-- Path/key inside the configured storage root; unique per stored blob. -->
+            <column name="storage_key" type="VARCHAR(512)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_files_storage_key"/>
+            </column>
+
+            <!-- FileType: PROFILE_PICTURE, CV_PDF. Metadata and validation only, never branches the schema. -->
+            <column name="file_type" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="mime_type" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="size_bytes" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="original_filename" type="VARCHAR(255)"/>
+
+            <column name="checksum" type="VARCHAR(64)"/>
+
+            <column name="uploaded_by" type="UUID"/>
+
+            <column name="source_identity_id" type="UUID"/>
+
+            <column name="source_url" type="VARCHAR(512)"/>
+
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!--
+            SET NULL rather than CASCADE on both: losing the uploader or unlinking the
+            provider must not delete a blob a user still has selected.
+        -->
+        <addForeignKeyConstraint baseTableName="files"
+                                 baseColumnNames="uploaded_by"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_files_uploaded_by"
+                                 onDelete="SET NULL"/>
+
+        <addForeignKeyConstraint baseTableName="files"
+                                 baseColumnNames="source_identity_id"
+                                 referencedTableName="user_identities"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_files_source_identity"
+                                 onDelete="SET NULL"/>
+
+        <createIndex tableName="files" indexName="idx_files_uploaded_by">
+            <column name="uploaded_by"/>
+        </createIndex>
+
+        <createIndex tableName="files" indexName="idx_files_file_type">
+            <column name="file_type"/>
+        </createIndex>
+
+        <!--
+            The single source of the displayed avatar. One column, one FK, no branch in
+            any consumer: whatever the user picked - provider avatar, upload, preset -
+            was copied into files first, so reads never care where it came from.
+
+            This lives here rather than in 001-create-users-table.xml, where a users column
+            would normally go, because it cannot: includes run in master order, so every
+            changeSet in 001 executes before this file creates `files`, and the foreign key
+            would have nothing to point at.
+        -->
+        <addColumn tableName="users">
+            <column name="profile_picture_file_id" type="UUID">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addForeignKeyConstraint baseTableName="users"
+                                 baseColumnNames="profile_picture_file_id"
+                                 referencedTableName="files"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_users_profile_picture_file"
+                                 onDelete="SET NULL"/>
+
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="users" constraintName="fk_users_profile_picture_file"/>
+            <dropColumn tableName="users" columnName="profile_picture_file_id"/>
+            <dropTable tableName="files"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
