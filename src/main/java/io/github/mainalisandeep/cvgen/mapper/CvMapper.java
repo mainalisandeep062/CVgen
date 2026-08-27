@@ -3,7 +3,9 @@ package io.github.mainalisandeep.cvgen.mapper;
 import io.github.mainalisandeep.cvgen.dto.CvDetailResponseDto;
 import io.github.mainalisandeep.cvgen.dto.CvListResponseDto;
 import io.github.mainalisandeep.cvgen.dto.CvSummaryResponseDto;
+import io.github.mainalisandeep.cvgen.dto.CvTemplateResponseDto;
 import io.github.mainalisandeep.cvgen.entity.Cv;
+import io.github.mainalisandeep.cvgen.enums.CvTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
@@ -56,6 +58,15 @@ public class CvMapper {
                 page.getSize(),
                 page.getTotalElements(),
                 page.getTotalPages()
+        );
+    }
+
+    public CvTemplateResponseDto toTemplateDto(CvTemplate template) {
+        return new CvTemplateResponseDto(
+                template.getKey(),
+                template.getDisplayName(),
+                template.getDescription(),
+                template.getSupportedSections()
         );
     }
 

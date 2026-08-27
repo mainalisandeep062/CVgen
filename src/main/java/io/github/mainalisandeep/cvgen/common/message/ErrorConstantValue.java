@@ -50,4 +50,7 @@ public final class ErrorConstantValue {
 
     /** The user already owns as many CVs as they are allowed. */
     public static final String CV_LIMIT_REACHED = "error.cv.limit.reached";
+
+    /** The template key names no template in the registry. */
+    public static final String CV_TEMPLATE_UNKNOWN = "error.cv.template.unknown";
 }
