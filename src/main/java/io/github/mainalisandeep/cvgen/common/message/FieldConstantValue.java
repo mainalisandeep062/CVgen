@@ -19,4 +19,6 @@ public final class FieldConstantValue {
     public static final String PROFILE_PICTURE = "Profile picture";
     public static final String PROFILE_PICTURE_OPTIONS = "Profile picture options";
     public static final String USER_IDENTITY = "Linked account";
+    public static final String CV = "CV";
+    public static final String CV_LIST = "CVs";
 }
