@@ -38,4 +38,16 @@ public final class ErrorConstantValue {
 
     /** The provider's avatar URL could not be fetched, or did not return a usable image. */
     public static final String PROFILE_PICTURE_FETCH_FAILED = "error.profile.picture.fetch.failed";
+
+    /** The content document is missing, or is not a JSON object. */
+    public static final String CV_CONTENT_INVALID = "error.cv.content.invalid";
+
+    /** The content document is larger than the configured cap. */
+    public static final String CV_CONTENT_TOO_LARGE = "error.cv.content.too.large";
+
+    /** The document declares a schema version this server cannot write. */
+    public static final String CV_SCHEMA_VERSION_UNSUPPORTED = "error.cv.schema.version.unsupported";
+
+    /** The user already owns as many CVs as they are allowed. */
+    public static final String CV_LIMIT_REACHED = "error.cv.limit.reached";
 }

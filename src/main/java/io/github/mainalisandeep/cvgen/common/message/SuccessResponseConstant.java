@@ -21,4 +21,8 @@ public final class SuccessResponseConstant {
 
     public static final String PROFILE_PICTURE_UPDATED = "success.profile.picture.updated";
     public static final String PROFILE_PICTURE_REMOVED = "success.profile.picture.removed";
+
+    public static final String CV_CREATED = "success.cv.created";
+    public static final String CV_UPDATED = "success.cv.updated";
+    public static final String CV_DELETED = "success.cv.deleted";
 }
