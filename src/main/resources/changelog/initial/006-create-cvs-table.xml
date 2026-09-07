@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+        One row per CV. Metadata lives in columns, the section tree lives in one jsonb
+        document.
+
+        Single table rather than a normalised section schema because the access pattern is
+        always "load the whole CV" - render, export, edit. Nothing reads one section in
+        isolation, section types have genuinely different shapes, and array position gives
+        ordering for free instead of a position column with renumber logic.
+
+        The rule that keeps that honest: anything the list screen displays must be a real
+        column, never read out of the document. Today that is title, template_key, status
+        and updated_at. If the list later shows the candidate's name, denormalise a
+        full_name column on write - do not reach into content.
+    -->
+    <changeSet id="006-create-cvs-table" author="sandeep mainali">
+
+        <createTable tableName="cvs">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- User-facing name of the CV ("Backend roles 2026"), not the candidate's name. -->
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- Resolved against the template registry; until that exists every CV renders classic. -->
+            <column name="template_key" type="VARCHAR(64)" defaultValue="classic">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- Output language of the CV itself, independent of the UI locale of the request. -->
+            <column name="locale" type="VARCHAR(16)" defaultValue="en">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- CvStatus: DRAFT, READY. -->
+            <column name="status" type="VARCHAR(32)" defaultValue="DRAFT">
+                <constraints nullable="false"/>
+            </column>
+
+            <!--
+                jsonb, not json or TEXT: malformed documents are rejected at insert instead of at
+                some future migration, jsonb_set backs the partial-update endpoint that comes next,
+                and a GIN index is available later without a type migration. Key order and
+                whitespace are not preserved, which is irrelevant here - the client deserialises
+                into typed objects and section order lives in an array.
+            -->
+            <column name="content" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- @Version. Pulled forward: free now, a migration once real CVs exist. -->
+            <column name="version" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!--
+            CASCADE, unlike the SET NULL used in 005: a CV has no meaning without its owner,
+            and an orphaned row would be a privacy liability rather than a recoverable blob.
+        -->
+        <addForeignKeyConstraint baseTableName="cvs"
+                                 baseColumnNames="user_id"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_cvs_user"
+                                 onDelete="CASCADE"/>
+
+        <!-- Backs the list screen: own CVs, most recently edited first. -->
+        <createIndex tableName="cvs" indexName="idx_cvs_user_id_updated_at">
+            <column name="user_id"/>
+            <column name="updated_at" descending="true"/>
+        </createIndex>
+
+        <!--
+            Both constraints are cheap now and awkward to retrofit. The service rejects the
+            same two cases with a readable BadRequestException; these are the backstop for
+            anything that reaches the table by another route.
+        -->
+        <sql>
+            ALTER TABLE cvs ADD CONSTRAINT chk_cvs_content_size CHECK (pg_column_size(content) &lt; 262144);
+            ALTER TABLE cvs ADD CONSTRAINT chk_cvs_content_object CHECK (jsonb_typeof(content) = 'object');
+        </sql>
+
+        <rollback>
+            <sql>
+                ALTER TABLE cvs DROP CONSTRAINT IF EXISTS chk_cvs_content_object;
+                ALTER TABLE cvs DROP CONSTRAINT IF EXISTS chk_cvs_content_size;
+            </sql>
+            <dropIndex tableName="cvs" indexName="idx_cvs_user_id_updated_at"/>
+            <dropForeignKeyConstraint baseTableName="cvs" constraintName="fk_cvs_user"/>
+            <dropTable tableName="cvs"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

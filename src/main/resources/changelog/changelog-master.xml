@@ -10,5 +10,6 @@
     <include file="initial/003-base-entity-audit-columns.xml" relativeToChangelogFile="true"/>
     <include file="initial/004-create-refresh-token-table.xml" relativeToChangelogFile="true"/>
     <include file="initial/005-create-files-table.xml" relativeToChangelogFile="true"/>
+    <include file="initial/006-create-cvs-table.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
