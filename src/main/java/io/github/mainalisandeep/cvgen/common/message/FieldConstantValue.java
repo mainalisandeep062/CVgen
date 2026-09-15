@@ -21,4 +21,5 @@ public final class FieldConstantValue {
     public static final String USER_IDENTITY = "Linked account";
     public static final String CV = "CV";
     public static final String CV_LIST = "CVs";
+    public static final String CV_TEMPLATES = "CV templates";
 }

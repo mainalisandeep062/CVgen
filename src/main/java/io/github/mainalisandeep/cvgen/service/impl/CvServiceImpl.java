@@ -17,6 +17,7 @@ import io.github.mainalisandeep.cvgen.mapper.CvMapper;
 import io.github.mainalisandeep.cvgen.repository.CvRepository;
 import io.github.mainalisandeep.cvgen.repository.UserRepository;
 import io.github.mainalisandeep.cvgen.service.CvService;
+import io.github.mainalisandeep.cvgen.service.CvTemplateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +35,7 @@ public class CvServiceImpl implements CvService {
     private final CvMapper cvMapper;
     private final CvContentValidator cvContentValidator;
     private final CvProperties cvProperties;
+    private final CvTemplateService cvTemplateService;
 
     @Override
     @Transactional
@@ -54,7 +56,8 @@ public class CvServiceImpl implements CvService {
         Cv cv = Cv.builder()
                 .user(user)
                 .title(request.getTitle().trim())
-                .templateKey(orDefault(request.getTemplateKey(), cvProperties.getDefaultTemplateKey()))
+                .templateKey(cvTemplateService.requireKnown(
+                        orDefault(request.getTemplateKey(), cvProperties.getDefaultTemplateKey())))
                 .locale(orDefault(request.getLocale(), cvProperties.getDefaultLocale()))
                 .content(content)
                 .build();
@@ -93,7 +96,7 @@ public class CvServiceImpl implements CvService {
             cv.setTitle(request.getTitle().trim());
         }
         if (request.getTemplateKey() != null) {
-            cv.setTemplateKey(request.getTemplateKey());
+            cv.setTemplateKey(cvTemplateService.requireKnown(request.getTemplateKey()));
         }
         if (request.getLocale() != null) {
             cv.setLocale(request.getLocale());

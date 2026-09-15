@@ -10,6 +10,7 @@ import io.github.mainalisandeep.cvgen.dto.CvUpdateRequestDto;
 import io.github.mainalisandeep.cvgen.entity.Cv;
 import io.github.mainalisandeep.cvgen.entity.User;
 import io.github.mainalisandeep.cvgen.enums.CvStatus;
+import io.github.mainalisandeep.cvgen.enums.CvTemplate;
 import io.github.mainalisandeep.cvgen.repository.CvRepository;
 import io.github.mainalisandeep.cvgen.repository.UserRepository;
 import io.github.mainalisandeep.cvgen.security.UserPrincipal;
@@ -220,6 +221,58 @@ class CvControllerTest extends PostgresContainerSupport {
         assertThat(cvRepository.countByUserId(owner.getId())).isEqualTo(cvProperties.getMaxPerUser());
     }
 
+    @Test
+    @DisplayName("Creating with a template key the registry does not know is rejected")
+    void createRejectsUnknownTemplate() throws Exception {
+        var request = CvCreateRequestDto.builder().title("Fancy").templateKey("holographic").build();
+
+        mockMvc.perform(post("/api/cvs")
+                        .with(asUser(owner))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(false));
+
+        assertThat(cvRepository.countByUserId(owner.getId())).isZero();
+    }
+
+    @Test
+    @DisplayName("Creating with an explicit known template stores its key")
+    void createWithKnownTemplate() throws Exception {
+        var request = CvCreateRequestDto.builder()
+                .title("Classic")
+                .templateKey(" " + CvTemplate.CLASSIC.getKey() + " ")
+                .build();
+
+        mockMvc.perform(post("/api/cvs")
+                        .with(asUser(owner))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.templateKey").value(CvTemplate.CLASSIC.getKey()));
+    }
+
+    // --- Templates ---
+
+    @Test
+    @DisplayName("The template list carries every registry entry, the default among them")
+    void listTemplates() throws Exception {
+        mockMvc.perform(get("/api/templates").with(asUser(owner)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(true))
+                .andExpect(jsonPath("$.data.length()").value(CvTemplate.values().length))
+                .andExpect(jsonPath("$.data[0].key").value(cvProperties.getDefaultTemplateKey()))
+                .andExpect(jsonPath("$.data[0].name").value(CvTemplate.CLASSIC.getDisplayName()))
+                .andExpect(jsonPath("$.data[0].supportedSections[1]").value("EXPERIENCE"));
+    }
+
+    @Test
+    @DisplayName("The template list is not public")
+    void listTemplatesRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/templates"))
+                .andExpect(status().isUnauthorized());
+    }
+
     // --- Read ---
 
     @Test
@@ -345,6 +398,23 @@ class CvControllerTest extends PostgresContainerSupport {
                 .andExpect(status().isNotFound());
 
         assertThat(cvRepository.findById(cv.getId()).orElseThrow().getTitle()).isEqualTo("Mine");
+    }
+
+    @Test
+    @DisplayName("Switching to an unknown template is rejected and the stored key survives")
+    void patchRejectsUnknownTemplate() throws Exception {
+        Cv cv = persistCv(owner, "Mine");
+
+        var request = CvMetaUpdateRequestDto.builder().templateKey("holographic").build();
+
+        mockMvc.perform(patch("/api/cvs/{cvId}/meta", cv.getId())
+                        .with(asUser(owner))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        assertThat(cvRepository.findById(cv.getId()).orElseThrow().getTemplateKey())
+                .isEqualTo(cvProperties.getDefaultTemplateKey());
     }
 
     // --- Delete ---
