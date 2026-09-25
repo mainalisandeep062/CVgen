@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+        One row per checkout attempt with a payment gateway (eSewa, Khalti).
+
+        Kept apart from credit_transactions on purpose: the ledger only ever records money that moved,
+        so its invariant (users.credit_balance equals the newest balance_after) holds without pending
+        rows in the way. An order becomes a PURCHASE ledger row only once the gateway has confirmed it
+        server to server; transaction_id then points at that row.
+
+        credits and amount_minor are snapshots taken at checkout: an admin repricing the pack while
+        the user is on the gateway's page must not change what they are charged or what they receive.
+    -->
+    <changeSet id="012-create-payment-orders-table" author="sandeep mainali">
+
+        <createTable tableName="payment_orders">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pack_id" type="UUID"/>
+            <column name="credits" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount_minor" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="currency" type="VARCHAR(3)" defaultValue="NPR">
+                <constraints nullable="false"/>
+            </column>
+            <!-- PaymentGateway: ESEWA, KHALTI. -->
+            <column name="gateway" type="VARCHAR(16)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- PaymentOrderStatus: PENDING, COMPLETED, FAILED, CANCELED. -->
+            <column name="status" type="VARCHAR(16)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Khalti's pidx from initiation, or eSewa's ref_id once confirmed. -->
+            <column name="gateway_reference" type="VARCHAR(128)"/>
+            <column name="failure_reason" type="VARCHAR(255)"/>
+            <column name="transaction_id" type="UUID"/>
+            <column name="completed_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="payment_orders"
+                                 baseColumnNames="user_id"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_payment_orders_user"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="payment_orders"
+                                 baseColumnNames="pack_id"
+                                 referencedTableName="credit_packs"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_payment_orders_pack"
+                                 onDelete="SET NULL"/>
+
+        <addForeignKeyConstraint baseTableName="payment_orders"
+                                 baseColumnNames="transaction_id"
+                                 referencedTableName="credit_transactions"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_payment_orders_transaction"
+                                 onDelete="SET NULL"/>
+
+        <sql>
+            ALTER TABLE payment_orders ADD CONSTRAINT chk_payment_orders_gateway
+                CHECK (gateway IN ('ESEWA', 'KHALTI'));
+            ALTER TABLE payment_orders ADD CONSTRAINT chk_payment_orders_status
+                CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED', 'CANCELED'));
+            ALTER TABLE payment_orders ADD CONSTRAINT chk_payment_orders_amounts
+                CHECK (credits &gt; 0 AND amount_minor &gt; 0);
+            -- One gateway reference credits one order, ever: the backstop against a replayed confirmation.
+            CREATE UNIQUE INDEX uq_payment_orders_gateway_reference
+                ON payment_orders (gateway, gateway_reference) WHERE gateway_reference IS NOT NULL;
+        </sql>
+
+        <createIndex tableName="payment_orders" indexName="idx_payment_orders_user_id_created_at">
+            <column name="user_id"/>
+            <column name="created_at" descending="true"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="payment_orders"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
