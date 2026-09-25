@@ -53,4 +53,35 @@ public final class ErrorConstantValue {
 
     /** The template key names no template in the registry. */
     public static final String CV_TEMPLATE_UNKNOWN = "error.cv.template.unknown";
+
+    /** The account is suspended; refused at token issue and on every authenticated request. */
+    public static final String ACCOUNT_SUSPENDED = "error.account.suspended";
+
+    /** An admin tried to change their own role or status, or to delete themselves. */
+    public static final String ADMIN_SELF_MODIFICATION = "error.admin.self.modification";
+
+    /** The change would leave no active admin. */
+    public static final String ADMIN_LAST_ADMIN = "error.admin.last.admin";
+
+    public static final String TEMPLATE_KEY_EXISTS = "error.template.key.exists";
+
+    /** {0} is the number of CVs still using the template. */
+    public static final String TEMPLATE_IN_USE = "error.template.in.use";
+
+    /** The configured default template cannot be deleted or deactivated. */
+    public static final String TEMPLATE_DEFAULT = "error.template.default";
+
+    public static final String TEMPLATE_LAYOUT_UNKNOWN = "error.template.layout.unknown";
+    public static final String TEMPLATE_SECTION_UNSUPPORTED = "error.template.section.unsupported";
+
+    public static final String CREDIT_PACK_IN_USE = "error.credit.pack.in.use";
+
+    /** The change would take a credit balance below zero. */
+    public static final String CREDITS_INSUFFICIENT = "error.credits.insufficient";
+
+    /** Only a completed purchase can be refunded, and only once. */
+    public static final String TRANSACTION_NOT_REFUNDABLE = "error.transaction.not.refundable";
+
+    /** {0} is the property a caller asked to sort by. */
+    public static final String SORT_UNSUPPORTED = "error.sort.unsupported";
 }

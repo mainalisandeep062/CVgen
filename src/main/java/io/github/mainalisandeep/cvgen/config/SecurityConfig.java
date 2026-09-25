@@ -1,6 +1,11 @@
 package io.github.mainalisandeep.cvgen.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.mainalisandeep.cvgen.common.message.CustomMessageSource;
 import io.github.mainalisandeep.cvgen.config.constants.MatchersConfig;
+import io.github.mainalisandeep.cvgen.enums.UserRole;
+import io.github.mainalisandeep.cvgen.repository.UserRepository;
+import io.github.mainalisandeep.cvgen.security.AccountStatusFilter;
 import io.github.mainalisandeep.cvgen.security.JwtAuthFilter;
 import io.github.mainalisandeep.cvgen.security.JwtTokenProvider;
 import io.github.mainalisandeep.cvgen.security.RestAccessDeniedHandler;
@@ -14,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -37,6 +43,7 @@ import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -53,7 +60,8 @@ public class SecurityConfig {
     private final RestAccessDeniedHandler restAccessDeniedHandler;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter,
+                                                   AccountStatusFilter accountStatusFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -62,6 +70,7 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
                     authorize.requestMatchers(MatchersConfig.PUBLIC_MATCHERS.toArray(String[]::new)).permitAll();
                     authorize.requestMatchers(MatchersConfig.SWAGGER_MATCHERS.toArray(String[]::new)).permitAll();
+                    authorize.requestMatchers(MatchersConfig.ADMIN_MATCHERS.toArray(String[]::new)).hasRole(UserRole.ADMIN.name());
                     authorize.anyRequest().authenticated();
                 })
                 .oauth2Login(oauth2 -> oauth2
@@ -84,6 +93,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(restAccessDeniedHandler)
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(accountStatusFilter, JwtAuthFilter.class)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable);
 
@@ -93,6 +103,12 @@ public class SecurityConfig {
     @Bean
     public JwtAuthFilter jwtAuthFilter(JwtTokenProvider jwtTokenProvider) {
         return new JwtAuthFilter(jwtTokenProvider, securityProperties);
+    }
+
+    @Bean
+    public AccountStatusFilter accountStatusFilter(UserRepository userRepository, ObjectMapper objectMapper,
+                                                   CustomMessageSource customMessageSource) {
+        return new AccountStatusFilter(userRepository, objectMapper, customMessageSource);
     }
 
     @Bean

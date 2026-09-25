@@ -25,4 +25,22 @@ public final class SuccessResponseConstant {
     public static final String CV_CREATED = "success.cv.created";
     public static final String CV_UPDATED = "success.cv.updated";
     public static final String CV_DELETED = "success.cv.deleted";
+
+    public static final String USER_UPDATED = "success.user.updated";
+    public static final String USER_DELETED = "success.user.deleted";
+    public static final String CREDITS_ADJUSTED = "success.credits.adjusted";
+
+    public static final String TEMPLATE_CREATED = "success.template.created";
+    public static final String TEMPLATE_UPDATED = "success.template.updated";
+    public static final String TEMPLATE_DELETED = "success.template.deleted";
+
+    public static final String CREDIT_PACK_CREATED = "success.credit.pack.created";
+    public static final String CREDIT_PACK_UPDATED = "success.credit.pack.updated";
+    public static final String CREDIT_PACK_DELETED = "success.credit.pack.deleted";
+    public static final String TRANSACTION_REFUNDED = "success.transaction.refunded";
+
+    public static final String NOTIFICATION_SENT = "success.notification.sent";
+    public static final String NOTIFICATION_DELETED = "success.notification.deleted";
+    public static final String NOTIFICATION_READ = "success.notification.read";
+    public static final String NOTIFICATIONS_READ_ALL = "success.notifications.read.all";
 }
