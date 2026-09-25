@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+        Credit packs (what can be bought) and the credit ledger (every change to a balance).
+
+        Money is integer minor units (paisa) in BIGINT, never NUMERIC or a float: sums stay exact,
+        and the currency travels in its own column instead of being implied.
+
+        The ledger is append-only in spirit. A refund does not edit or delete the purchase; it marks it
+        REFUNDED and writes a REFUND row with the negated credits, so history always explains the
+        current balance: users.credit_balance equals the balance_after of the user's newest row.
+    -->
+    <changeSet id="009-create-credit-packs-table" author="sandeep mainali">
+
+        <createTable tableName="credit_packs">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(80)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="credits" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="price_minor" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="currency" type="VARCHAR(3)" defaultValue="NPR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <!-- The pack the pricing page draws attention to. Presentation only. -->
+            <column name="highlighted" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sort_order" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>
+            ALTER TABLE credit_packs ADD CONSTRAINT chk_credit_packs_credits CHECK (credits BETWEEN 1 AND 100000);
+            ALTER TABLE credit_packs ADD CONSTRAINT chk_credit_packs_price CHECK (price_minor BETWEEN 0 AND 100000000);
+        </sql>
+
+        <sql>
+            INSERT INTO credit_packs (id, name, credits, price_minor, currency, active, highlighted, sort_order, created_at, updated_at)
+            VALUES (gen_random_uuid(), 'Starter', 5, 25000, 'NPR', true, false, 0, now(), now()),
+                   (gen_random_uuid(), 'Popular', 15, 60000, 'NPR', true, true, 1, now(), now()),
+                   (gen_random_uuid(), 'Pro', 50, 180000, 'NPR', true, false, 2, now(), now())
+        </sql>
+
+        <rollback>
+            <dropTable tableName="credit_packs"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="009-create-credit-transactions-table" author="sandeep mainali">
+
+        <createTable tableName="credit_transactions">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <!-- CreditTransactionType: PURCHASE, ADMIN_GRANT, ADMIN_DEDUCT, SPEND, REFUND. -->
+            <column name="type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- CreditTransactionStatus: PENDING, COMPLETED, FAILED, REFUNDED. -->
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Signed delta applied to the balance. -->
+            <column name="credits" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="balance_after" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount_minor" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="currency" type="VARCHAR(3)" defaultValue="NPR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pack_id" type="UUID"/>
+            <column name="payment_method" type="VARCHAR(32)"/>
+            <!-- Gateway reference for a purchase. Unused until a payment gateway exists. -->
+            <column name="reference" type="VARCHAR(128)"/>
+            <column name="note" type="VARCHAR(500)"/>
+            <!-- On a REFUND row: the purchase it reverses. -->
+            <column name="refund_of_id" type="UUID"/>
+            <!-- The admin who made the change; null for user-initiated rows. -->
+            <column name="created_by" type="UUID"/>
+            <!--
+                Snapshot, because created_by is SET NULL: deleting an admin must not erase who granted
+                credits in the past.
+            -->
+            <column name="created_by_email" type="VARCHAR(255)"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- CASCADE like cvs: a ledger row without its owner is personal data with no purpose. -->
+        <addForeignKeyConstraint baseTableName="credit_transactions"
+                                 baseColumnNames="user_id"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_credit_transactions_user"
+                                 onDelete="CASCADE"/>
+
+        <!-- SET NULL is only the backstop: the service refuses to delete a pack any row references. -->
+        <addForeignKeyConstraint baseTableName="credit_transactions"
+                                 baseColumnNames="pack_id"
+                                 referencedTableName="credit_packs"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_credit_transactions_pack"
+                                 onDelete="SET NULL"/>
+
+        <addForeignKeyConstraint baseTableName="credit_transactions"
+                                 baseColumnNames="refund_of_id"
+                                 referencedTableName="credit_transactions"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_credit_transactions_refund_of"
+                                 onDelete="SET NULL"/>
+
+        <addForeignKeyConstraint baseTableName="credit_transactions"
+                                 baseColumnNames="created_by"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_credit_transactions_created_by"
+                                 onDelete="SET NULL"/>
+
+        <sql>
+            ALTER TABLE credit_transactions ADD CONSTRAINT chk_credit_transactions_type
+                CHECK (type IN ('PURCHASE', 'ADMIN_GRANT', 'ADMIN_DEDUCT', 'SPEND', 'REFUND'));
+            ALTER TABLE credit_transactions ADD CONSTRAINT chk_credit_transactions_status
+                CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'));
+            ALTER TABLE credit_transactions ADD CONSTRAINT chk_credit_transactions_balance_after
+                CHECK (balance_after &gt;= 0);
+        </sql>
+
+        <!-- A user's history, newest first: the billing screen and the admin user detail. -->
+        <createIndex tableName="credit_transactions" indexName="idx_credit_transactions_user_id_created_at">
+            <column name="user_id"/>
+            <column name="created_at" descending="true"/>
+        </createIndex>
+
+        <!-- The admin ledger and every windowed billing aggregate. -->
+        <createIndex tableName="credit_transactions" indexName="idx_credit_transactions_created_at">
+            <column name="created_at" descending="true"/>
+        </createIndex>
+
+        <createIndex tableName="credit_transactions" indexName="idx_credit_transactions_pack_id">
+            <column name="pack_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="credit_transactions"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

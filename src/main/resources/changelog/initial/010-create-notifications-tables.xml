@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+        In-app notifications sent by admins: to one user, or broadcast to everyone.
+
+        A broadcast is one row, not a row per user. Fan-out on write would make "send to all" cost
+        O(users) inserts and would still miss accounts created afterwards; instead visibility is
+        computed on read (addressed to me, or a broadcast created at/after my account), and only the
+        read receipts are per user.
+
+        notification_reads gets its own UUID id plus a unique (notification_id, user_id) rather than a
+        composite primary key, so it extends BaseEntity like every other table.
+    -->
+    <changeSet id="010-create-notifications-table" author="sandeep mainali">
+
+        <createTable tableName="notifications">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(160)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="body" type="VARCHAR(2000)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- NotificationLevel: INFO, SUCCESS, WARNING, CRITICAL. -->
+            <column name="level" type="VARCHAR(16)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- In-app path ("/billing") or an https URL; validated on write. -->
+            <column name="link" type="VARCHAR(512)"/>
+            <!-- NotificationAudience: ALL, USER. -->
+            <column name="audience" type="VARCHAR(8)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recipient_id" type="UUID"/>
+            <column name="created_by" type="UUID"/>
+            <!-- Snapshot: created_by is SET NULL when the sending admin is deleted. -->
+            <column name="created_by_email" type="VARCHAR(255)"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!--
+            CASCADE on the recipient: a message addressed to a deleted account has nobody to be read by.
+            Account deletion also removes these explicitly, so this is the backstop for other paths.
+        -->
+        <addForeignKeyConstraint baseTableName="notifications"
+                                 baseColumnNames="recipient_id"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_notifications_recipient"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="notifications"
+                                 baseColumnNames="created_by"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_notifications_created_by"
+                                 onDelete="SET NULL"/>
+
+        <sql>
+            ALTER TABLE notifications ADD CONSTRAINT chk_notifications_level
+                CHECK (level IN ('INFO', 'SUCCESS', 'WARNING', 'CRITICAL'));
+            ALTER TABLE notifications ADD CONSTRAINT chk_notifications_audience
+                CHECK (audience IN ('ALL', 'USER'));
+            ALTER TABLE notifications ADD CONSTRAINT chk_notifications_recipient_matches_audience
+                CHECK ((audience = 'USER') = (recipient_id IS NOT NULL));
+        </sql>
+
+        <!-- The two halves of the visibility predicate. -->
+        <createIndex tableName="notifications" indexName="idx_notifications_recipient_id_created_at">
+            <column name="recipient_id"/>
+            <column name="created_at" descending="true"/>
+        </createIndex>
+        <createIndex tableName="notifications" indexName="idx_notifications_audience_created_at">
+            <column name="audience"/>
+            <column name="created_at" descending="true"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="notifications"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="010-create-notification-reads-table" author="sandeep mainali">
+
+        <createTable tableName="notification_reads">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="notification_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <!-- created_at doubles as the read time. -->
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Makes "mark as read" idempotent under concurrent clicks (INSERT ... ON CONFLICT DO NOTHING). -->
+        <addUniqueConstraint tableName="notification_reads"
+                             columnNames="notification_id, user_id"
+                             constraintName="uq_notification_reads_notification_user"/>
+
+        <addForeignKeyConstraint baseTableName="notification_reads"
+                                 baseColumnNames="notification_id"
+                                 referencedTableName="notifications"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_notification_reads_notification"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="notification_reads"
+                                 baseColumnNames="user_id"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_notification_reads_user"
+                                 onDelete="CASCADE"/>
+
+        <createIndex tableName="notification_reads" indexName="idx_notification_reads_user_id">
+            <column name="user_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="notification_reads"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

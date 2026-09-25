@@ -11,5 +11,10 @@
     <include file="initial/004-create-refresh-token-table.xml" relativeToChangelogFile="true"/>
     <include file="initial/005-create-files-table.xml" relativeToChangelogFile="true"/>
     <include file="initial/006-create-cvs-table.xml" relativeToChangelogFile="true"/>
+    <include file="initial/007-user-role-status-credits.xml" relativeToChangelogFile="true"/>
+    <include file="initial/008-create-cv-templates-table.xml" relativeToChangelogFile="true"/>
+    <include file="initial/009-create-billing-tables.xml" relativeToChangelogFile="true"/>
+    <include file="initial/010-create-notifications-tables.xml" relativeToChangelogFile="true"/>
+    <include file="initial/011-create-admin-audit-logs-table.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
