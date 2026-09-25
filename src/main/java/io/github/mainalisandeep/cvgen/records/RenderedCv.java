@@ -50,5 +50,16 @@ public record RenderedCv(
             String body,
             List<String> keywords
     ) {
+
+        /**
+         * {@link #body()} split into its non-blank lines, leading bullet characters dropped. Several
+         * lines draw as a bullet list, one as a paragraph - the same rule as the editor's preview.
+         */
+        public List<String> lines() {
+            return body.lines()
+                    .map(line -> line.replaceFirst("^\\s*[-•*]\\s*", "").strip())
+                    .filter(line -> !line.isEmpty())
+                    .toList();
+        }
     }
 }

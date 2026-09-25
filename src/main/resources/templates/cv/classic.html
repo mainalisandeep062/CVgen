@@ -26,15 +26,19 @@
             margin: 0;
         }
 
+        .header {
+            text-align: center;
+        }
+
         .name {
-            font-size: 21pt;
+            font-size: 20pt;
             font-weight: bold;
-            letter-spacing: -0.2pt;
             margin: 0;
         }
 
         .headline {
-            font-size: 11pt;
+            font-size: 10.5pt;
+            font-weight: bold;
             color: [[${accent}]];
             margin: 2pt 0 0 0;
         }
@@ -88,6 +92,15 @@
             margin: 2pt 0 0 0;
         }
 
+        ul.bullets {
+            margin: 2pt 0 0 0;
+            padding-left: 13pt;
+        }
+
+        ul.bullets li {
+            margin-bottom: 1pt;
+        }
+
         .skills-group {
             margin-bottom: 3pt;
         }
@@ -131,12 +144,15 @@
                 <div class="row">
                     <span class="dates" th:if="${!item.dates().isBlank()}" th:text="${item.dates()}">dates</span>
                     <span class="heading" th:text="${item.heading()}">heading</span>
-                    <span class="sub" th:if="${!item.subheading().isBlank()}" th:text="${' — ' + item.subheading()}"> — sub</span>
+                    <span class="sub" th:if="${!item.subheading().isBlank()}" th:text="${', ' + item.subheading()}">, sub</span>
                 </div>
                 <div th:if="${!item.url().isBlank()}">
                     <a th:href="${item.url()}" th:text="${item.url()}">url</a>
                 </div>
-                <p class="body" th:if="${!item.body().isBlank()}" th:text="${item.body()}">body</p>
+                <p class="body" th:if="${item.lines().size() == 1}" th:text="${item.lines().get(0)}">body</p>
+                <ul class="bullets" th:if="${item.lines().size() > 1}">
+                    <li th:each="line : ${item.lines()}" th:text="${line}">line</li>
+                </ul>
             </div>
         </th:block>
 
