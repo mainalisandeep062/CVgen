@@ -2,6 +2,7 @@ package io.github.mainalisandeep.cvgen.service.impl;
 
 import io.github.mainalisandeep.cvgen.common.exception.BadRequestException;
 import io.github.mainalisandeep.cvgen.common.exception.ConflictException;
+import io.github.mainalisandeep.cvgen.common.exception.ForbiddenException;
 import io.github.mainalisandeep.cvgen.common.exception.ResourceNotFoundException;
 import io.github.mainalisandeep.cvgen.common.exception.TooManyRequestsException;
 import io.github.mainalisandeep.cvgen.common.exception.UnauthorizedException;
@@ -13,6 +14,7 @@ import io.github.mainalisandeep.cvgen.dto.SignUpRequestDto;
 import io.github.mainalisandeep.cvgen.dto.VerifyOtpRequestDto;
 import io.github.mainalisandeep.cvgen.entity.User;
 import io.github.mainalisandeep.cvgen.enums.OtpPurpose;
+import io.github.mainalisandeep.cvgen.enums.UserStatus;
 import io.github.mainalisandeep.cvgen.mapper.UserMapper;
 import io.github.mainalisandeep.cvgen.records.AuthTokens;
 import io.github.mainalisandeep.cvgen.records.LoginResult;
@@ -27,6 +29,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -42,6 +45,7 @@ public class AuthServiceImpl implements AuthService {
     private final OAuth2ExchangeCodeStore exchangeCodeStore;
     private final UserMapper userMapper;
     private final RefreshTokenService refreshTokenService;
+    private final AdminBootstrapService adminBootstrapService;
 
     @Override
     @Transactional
@@ -68,11 +72,16 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public LoginResult login(LoginRequestDto request, String trustedDeviceToken) {
         User user = userRepository.findByEmail(request.getEmail())
                 .filter(User::hasLocalPassword)
                 .filter(candidate -> passwordEncoder.matches(request.getPassword(), candidate.getPasswordHash()))
                 .orElseThrow(() -> new UnauthorizedException(ErrorConstantValue.INVALID_CREDENTIALS));
+
+        // Only after the password check: refusing a suspended account any earlier would tell a caller
+        // without the password that the address is registered.
+        requireActive(user);
 
         if (trustedDeviceService.isTrusted(user.getId(), trustedDeviceToken)) {
             return LoginResult.authenticated(issueTokens(user, false));
@@ -91,6 +100,7 @@ public class AuthServiceImpl implements AuthService {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> ResourceNotFoundException.of(FieldConstantValue.USER));
+        requireActive(user);
 
         if (OtpPurpose.SIGNUP == request.getPurpose() && !user.isEmailVerified()) {
             user.setEmailVerified(true);
@@ -109,14 +119,23 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public AuthTokens exchangeOAuth2Code(String code) {
         UUID userId = exchangeCodeStore.consumeExchangeCode(code)
                 .orElseThrow(() -> new BadRequestException(ErrorConstantValue.EXCHANGE_CODE_INVALID));
-        return issueTokens(findUser(userId), false);
+        User user = findUser(userId);
+        requireActive(user);
+        return issueTokens(user, false);
     }
 
     @Override
     public AuthTokens refresh(String refreshToken) {
+        // Checked before rotating, not after: suspension revokes every refresh token, so rotate() would
+        // treat the presented token as a replay and answer "reused" instead of the actual reason.
+        if (refreshToken != null && jwtTokenProvider.validateRefreshToken(refreshToken)) {
+            userRepository.findById(jwtTokenProvider.getUserIdFromToken(refreshToken)).ifPresent(this::requireActive);
+        }
+
         String newRefreshToken = refreshTokenService.rotate(refreshToken);
         UUID userId = jwtTokenProvider.getUserIdFromToken(newRefreshToken);
         UserPrincipal principal = userMapper.toPrincipal(findUser(userId));
@@ -128,7 +147,22 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> ResourceNotFoundException.of(FieldConstantValue.USER));
     }
 
+    private void requireActive(User user) {
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new ForbiddenException(ErrorConstantValue.ACCOUNT_SUSPENDED);
+        }
+    }
+
+    /**
+     * The single place a login completes. A refresh deliberately does not come through here: it is not
+     * a sign-in, so it neither moves {@code last_login_at} nor re-runs the admin bootstrap.
+     */
     private AuthTokens issueTokens(User user, boolean rememberDevice) {
+        // Before the principal is built, so a promotion is already in this token's authorities.
+        adminBootstrapService.promoteIfListed(user);
+        user.setLastLoginAt(Instant.now());
+        userRepository.save(user);
+
         UserPrincipal principal = userMapper.toPrincipal(user);
         return new AuthTokens(
                 jwtTokenProvider.generateToken(principal),
