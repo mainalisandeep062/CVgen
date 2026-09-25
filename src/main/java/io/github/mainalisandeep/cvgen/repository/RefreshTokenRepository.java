@@ -34,4 +34,13 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
             )
             """, nativeQuery = true)
     void pruneToWindow(@Param("userId") UUID userId, @Param("windowSize") int windowSize);
+
+    /**
+     * fk_refresh_token_user cascades, so this is not needed for the delete to succeed. Account deletion
+     * still removes them explicitly, first, so a token cannot be rotated between the checks and the
+     * cascade.
+     */
+    @Modifying
+    @Query("DELETE FROM RefreshToken t WHERE t.user.id = :userId")
+    int deleteAllByUserId(@Param("userId") UUID userId);
 }
