@@ -56,7 +56,7 @@ public class CvServiceImpl implements CvService {
         Cv cv = Cv.builder()
                 .user(user)
                 .title(request.getTitle().trim())
-                .templateKey(cvTemplateService.requireKnown(
+                .templateKey(cvTemplateService.requireUsable(userId,
                         orDefault(request.getTemplateKey(), cvProperties.getDefaultTemplateKey())))
                 .locale(orDefault(request.getLocale(), cvProperties.getDefaultLocale()))
                 .content(content)
@@ -97,9 +97,10 @@ public class CvServiceImpl implements CvService {
         }
         // Re-sending the key the CV already has is not a switch, so it is accepted even when an admin has
         // since deactivated that template: the editor round-trips every field, and renaming a CV must not
-        // fail because its template was retired. Moving to a different key needs an active template.
+        // fail because its template was retired. Moving to a different key needs an active template, and an
+        // unlocked one when it is premium.
         if (request.getTemplateKey() != null && !request.getTemplateKey().trim().equals(cv.getTemplateKey())) {
-            cv.setTemplateKey(cvTemplateService.requireKnown(request.getTemplateKey()));
+            cv.setTemplateKey(cvTemplateService.requireUsable(userId, request.getTemplateKey()));
         }
         if (request.getLocale() != null) {
             cv.setLocale(request.getLocale());

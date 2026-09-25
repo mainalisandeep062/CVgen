@@ -19,7 +19,7 @@ import java.util.List;
 public class CvTemplateMapper {
 
     /** Picker entry. Carries nothing an ordinary user should not see, such as usage counts. */
-    public CvTemplateResponseDto toPublicDto(CvTemplate template) {
+    public CvTemplateResponseDto toPublicDto(CvTemplate template, boolean unlocked) {
         return new CvTemplateResponseDto(
                 template.getTemplateKey(),
                 template.getName(),
@@ -28,7 +28,8 @@ public class CvTemplateMapper {
                 template.getLayout(),
                 template.getAccentColor(),
                 template.isPremium(),
-                template.getCreditCost()
+                template.getCreditCost(),
+                !template.isPremium() || unlocked
         );
     }
 

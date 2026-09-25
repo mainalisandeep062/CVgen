@@ -15,6 +15,9 @@ public interface CvTemplateRepository extends JpaRepository<CvTemplate, UUID> {
 
     Optional<CvTemplate> findByTemplateKeyAndActiveTrue(String templateKey);
 
+    /** Active or not: rendering a CV must not fail because its template was retired. */
+    Optional<CvTemplate> findByTemplateKey(String templateKey);
+
     /** Picker order. */
     List<CvTemplate> findAllByActiveTrueOrderBySortOrderAscNameAsc();
 

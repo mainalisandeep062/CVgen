@@ -54,6 +54,54 @@ public final class ErrorConstantValue {
     /** The template key names no template in the registry. */
     public static final String CV_TEMPLATE_UNKNOWN = "error.cv.template.unknown";
 
+    /** A concurrent write changed the row first; the client should reload and retry. */
+    public static final String CONCURRENT_UPDATE = "error.concurrent.update";
+
+    /** A premium template the caller has not unlocked. */
+    public static final String CV_TEMPLATE_LOCKED = "error.cv.template.locked";
+
+    /** Rendering the PDF took longer than the configured budget. */
+    public static final String CV_EXPORT_TIMEOUT = "error.cv.export.timeout";
+
+    /** The renderer failed on a document it should have handled. */
+    public static final String CV_EXPORT_FAILED = "error.cv.export.failed";
+
+    /** The upload is neither a PDF nor a Word (.docx) document, judged by its bytes. */
+    public static final String CV_IMPORT_UNSUPPORTED_TYPE = "error.cv.import.unsupported.type";
+
+    /** The upload is larger than the import cap. */
+    public static final String CV_IMPORT_TOO_LARGE = "error.cv.import.too.large";
+
+    /** The PDF has more pages than a CV plausibly does. */
+    public static final String CV_IMPORT_TOO_MANY_PAGES = "error.cv.import.too.many.pages";
+
+    /** The PDF is password protected. */
+    public static final String CV_IMPORT_ENCRYPTED = "error.cv.import.encrypted";
+
+    /** The file is damaged, or not what its first bytes claim. */
+    public static final String CV_IMPORT_UNREADABLE = "error.cv.import.unreadable";
+
+    /** The file has no extractable text - usually a scanned image. */
+    public static final String CV_IMPORT_NO_TEXT = "error.cv.import.no.text";
+
+    /** Not a syntactically valid GitHub username. */
+    public static final String GITHUB_USERNAME_INVALID = "error.github.username.invalid";
+
+    /** GitHub refused because the unauthenticated rate limit is spent. */
+    public static final String GITHUB_RATE_LIMITED = "error.github.rate.limited";
+
+    /** GitHub could not be reached, or answered with something unusable. */
+    public static final String GITHUB_UNAVAILABLE = "error.github.unavailable";
+
+    /** The requested gateway is not configured on this server. */
+    public static final String PAYMENT_GATEWAY_DISABLED = "error.payment.gateway.disabled";
+
+    /** The gateway could not be reached or answered with something unusable. */
+    public static final String PAYMENT_GATEWAY_UNAVAILABLE = "error.payment.gateway.unavailable";
+
+    /** The pack does not exist or is no longer on sale. */
+    public static final String PAYMENT_PACK_UNAVAILABLE = "error.payment.pack.unavailable";
+
     /** The account is suspended; refused at token issue and on every authenticated request. */
     public static final String ACCOUNT_SUSPENDED = "error.account.suspended";
 

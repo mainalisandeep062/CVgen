@@ -23,6 +23,10 @@ public final class FieldConstantValue {
     public static final String CV_LIST = "CVs";
     public static final String CV_TEMPLATES = "CV templates";
     public static final String CV_TEMPLATE = "CV template";
+    public static final String GITHUB_USER = "GitHub user";
+    public static final String GITHUB_REPOSITORIES = "GitHub repositories";
+    public static final String PAYMENT_ORDER = "Payment";
+    public static final String PAYMENT_GATEWAYS = "Payment methods";
     public static final String TEMPLATE_LAYOUTS = "Template layouts";
     public static final String USERS = "Users";
     public static final String ANALYTICS_OVERVIEW = "Analytics overview";

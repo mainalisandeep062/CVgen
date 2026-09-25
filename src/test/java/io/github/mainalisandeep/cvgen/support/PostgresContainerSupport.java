@@ -16,18 +16,18 @@ import java.sql.SQLException;
  * <p>Tests used to run on H2 with {@code MODE=PostgreSQL}. That shim is not PostgreSQL: it cannot
  * parse the partial unique index in changeset 001, which had to be fenced behind
  * {@code dbms="postgresql"}. Dialect-specific DDL was therefore skipped outright in tests rather
- * than exercised — the same fate awaiting {@code jsonb}, {@code CHECK} constraints and
+ * than exercised - the same fate awaiting {@code jsonb}, {@code CHECK} constraints and
  * {@code gen_random_uuid()} (changeset 002) as the schema grows.
  *
  * <p>The container is a JVM-wide singleton started once in a static initialiser rather than a
  * Spring {@code @Bean}. Spring caches a separate ApplicationContext per distinct test
  * configuration (for example {@code @AutoConfigureMockMvc} produces its own), and a container bean
- * would be created — and stopped — once per context. A static instance is started once per JVM and
+ * would be created - and stopped - once per context. A static instance is started once per JVM and
  * shared by every context.
  *
  * <p>Deliberately not reused between runs ({@code withReuse} is off). A reused container keeps its
  * {@code DATABASECHANGELOG} table, so editing an in-development changeset would fail with a
- * checksum error that a fresh container never sees. It is never stopped explicitly either — Ryuk,
+ * checksum error that a fresh container never sees. It is never stopped explicitly either - Ryuk,
  * the Testcontainers sidecar, removes it when the JVM exits.
  */
 public abstract class PostgresContainerSupport {
@@ -60,7 +60,7 @@ public abstract class PostgresContainerSupport {
      *
      * <p>Not paranoia. {@code application-test.yaml} no longer declares a datasource, so an
      * unresolved {@code @DynamicPropertySource} would fall through to {@code application.yaml}'s
-     * {@code ${DATABASE_URL}} — the developer's real database, loaded from {@code .env} by
+     * {@code ${DATABASE_URL}} - the developer's real database, loaded from {@code .env} by
      * {@link io.github.mainalisandeep.cvgen.config.DotenvEnvironmentPostProcessor}. Some tests here
      * call {@code deleteAll()}, so a silent fallback would destroy real data instead of failing.
      *

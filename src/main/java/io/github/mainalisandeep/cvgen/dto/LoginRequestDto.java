@@ -13,7 +13,7 @@ import lombok.Setter;
  * <p>
  * There is no {@code rememberMe} here: trusting this device is decided on the OTP
  * screen and travels on {@link VerifyOtpRequestDto}, which is the only request that
- * can act on it — login either recognises an existing trusted-device cookie or falls
+ * can act on it - login either recognises an existing trusted-device cookie or falls
  * through to an OTP challenge.
  */
 @Getter
