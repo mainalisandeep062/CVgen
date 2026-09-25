@@ -13,6 +13,7 @@ import java.util.List;
  * @param layout            renderer the template is a variant of
  * @param accentColor       {@code #RRGGBB}, or {@code null} for the layout's own colour
  * @param creditCost        credits a premium template costs, always 0 when not premium
+ * @param unlocked          whether the caller may use it: always for a free template, after paying for a premium one
  */
 public record CvTemplateResponseDto(
         String key,
@@ -22,6 +23,7 @@ public record CvTemplateResponseDto(
         String layout,
         String accentColor,
         boolean premium,
-        int creditCost
+        int creditCost,
+        boolean unlocked
 ) {
 }
