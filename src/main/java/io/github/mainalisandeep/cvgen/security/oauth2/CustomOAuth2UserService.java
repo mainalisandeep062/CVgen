@@ -78,6 +78,9 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         // Build UserPrincipal with the current session's provider
         OAuth2UserInfo userInfo = userInfoFactory.getUserInfo(registrationId, attributes);
 
+        // This principal only lives for the handshake: the success handler reads its id into an exchange
+        // code and clears the context. The tokens the client uses are minted by AuthServiceImpl from the
+        // stored role, so an admin is not demoted here and nothing reads these authorities.
         Set<SimpleGrantedAuthority> authorities = new LinkedHashSet<>();
         authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
 
