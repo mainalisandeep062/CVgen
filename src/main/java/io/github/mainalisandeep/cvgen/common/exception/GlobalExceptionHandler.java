@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -37,6 +38,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<GlobalApiResponse<Object>> handleBaseException(BaseException exception) {
         log.debug("Handled application exception: {}", exception.getMessageKey());
         return build(exception.getStatus(), customMessageSource.get(exception.getMessageKey(), exception.getArguments()), null);
+    }
+
+    /**
+     * Two writes to the same row raced on its {@code @Version}: the loser is told to reload, never
+     * silently overwritten. A 409 rather than the generic 500, because retrying with fresh data works.
+     */
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<GlobalApiResponse<Object>> handleOptimisticLock(ObjectOptimisticLockingFailureException exception) {
+        log.debug("Optimistic lock conflict on {}", exception.getPersistentClassName());
+        return build(HttpStatus.CONFLICT, customMessageSource.get(ErrorConstantValue.CONCURRENT_UPDATE), null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

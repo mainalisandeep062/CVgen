@@ -54,6 +54,9 @@ public final class ErrorConstantValue {
     /** The template key names no template in the registry. */
     public static final String CV_TEMPLATE_UNKNOWN = "error.cv.template.unknown";
 
+    /** A concurrent write changed the row first; the client should reload and retry. */
+    public static final String CONCURRENT_UPDATE = "error.concurrent.update";
+
     /** A premium template the caller has not unlocked. */
     public static final String CV_TEMPLATE_LOCKED = "error.cv.template.locked";
 
