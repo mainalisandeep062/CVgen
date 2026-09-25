@@ -66,7 +66,7 @@ public class AuthController extends BaseController {
 
     /**
      * Ends the session: expires the refresh cookie and kills any server-side HTTP session
-     * (an OAuth2 login leaves one behind). The trusted-device cookie deliberately survives —
+     * (an OAuth2 login leaves one behind). The trusted-device cookie deliberately survives -
      * "remember this device" means the OTP stays skipped for its full 30 days, across logouts.
      */
     @PostMapping("/logout")

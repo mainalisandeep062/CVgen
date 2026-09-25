@@ -52,7 +52,7 @@ class CvTextParserTest {
             Leadership, Communication
 
             PROJECTS
-            Khata Book — github.com/aarav/khata
+            Khata Book \u2014 github.com/aarav/khata
             • Offline-first ledger app for small shops.
             Nepali Date Converter
             • Library for BS/AD conversion.

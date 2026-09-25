@@ -88,7 +88,7 @@ class CvExportControllerTest extends PostgresContainerSupport {
     @DisplayName("A filled CV downloads as a PDF named after the candidate, with accented text intact")
     void exportsPdf() throws Exception {
         Cv cv = persistCv(owner, document("Zoë Ångström-Müller", "Senior Java Developer",
-                "Built payment services at eSewa — 40% faster settlement."));
+                "Built payment services at eSewa, 40% faster settlement."));
 
         byte[] pdf = mockMvc.perform(get("/api/cvs/{id}/export.pdf", cv.getId()).with(asUser(owner)))
                 .andExpect(status().isOk())

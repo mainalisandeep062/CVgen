@@ -61,7 +61,7 @@ class OAuth2UserResolverTest extends PostgresContainerSupport {
         assertThat(identities).hasSize(1);
         assertThat(identities.get(0).getProvider()).isEqualTo("google");
 
-        // Step 2: GitHub login with same verified email — should auto-link
+        // Step 2: GitHub login with same verified email - should auto-link
         Map<String, Object> githubAttrs = Map.of(
                 "id", "github-456",
                 "login", "testuser",

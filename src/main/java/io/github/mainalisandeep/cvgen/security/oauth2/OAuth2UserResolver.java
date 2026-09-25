@@ -51,7 +51,7 @@ public class OAuth2UserResolver {
             return existingIdentity.getUser();
         }
 
-        // 2. No existing identity — check by email
+        // 2. No existing identity - check by email
         User existingUser = userRepository.findByEmail(userInfo.getEmail()).orElse(null);
 
         if (existingUser != null) {
@@ -87,7 +87,7 @@ public class OAuth2UserResolver {
             }
         }
 
-        // 3. No user at all — create new user + identity
+        // 3. No user at all - create new user + identity
         return createNewUserWithIdentity(userInfo, provider);
     }
 

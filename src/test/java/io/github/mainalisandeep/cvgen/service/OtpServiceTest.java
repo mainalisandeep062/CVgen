@@ -60,7 +60,7 @@ class OtpServiceTest extends PostgresContainerSupport {
     }
 
     @Test
-    @DisplayName("AC5: attempt cap reached — even the correct code is rejected")
+    @DisplayName("AC5: attempt cap reached, even the correct code is rejected")
     void attemptCap() {
         String rawOtp = otpService.generate("user@test.com", OtpPurpose.LOGIN);
 

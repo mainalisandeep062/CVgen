@@ -41,7 +41,7 @@ public class CvTextParser {
     private static final Pattern PHONE = Pattern.compile("(?<![\\w])(\\+?\\d[\\d ()-]{7,}\\d)(?![\\w])");
     private static final Pattern URL = Pattern.compile(
             "(?i)\\b((?:https?://)?(?:www\\.)?(?:[a-z0-9-]+\\.)+[a-z]{2,}(?:/[^\\s|,•]*)?)");
-    private static final Pattern BULLET = Pattern.compile("^[\\s]*[•●▪◦‣∙·*–—-]\\s*");
+    private static final Pattern BULLET = Pattern.compile("^[\\s]*[•●▪◦‣∙·*\u2013\u2014-]\\s*");
 
     private static final String MONTH =
             "(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?"
@@ -49,7 +49,7 @@ public class CvTextParser {
     private static final String POINT = "(?:" + MONTH + "\\.?\\s+\\d{4}|\\d{1,2}/\\d{4}|\\d{4}-\\d{2}|\\d{4})";
     private static final String NOW = "(?:present|current|now|ongoing|till date|to date)";
     private static final Pattern DATE_RANGE = Pattern.compile(
-            "(?i)(" + POINT + ")\\s*(?:-|–|—|to|until)\\s*(" + POINT + "|" + NOW + ")");
+            "(?i)(" + POINT + ")\\s*(?:-|\u2013|\u2014|to|until)\\s*(" + POINT + "|" + NOW + ")");
     private static final Pattern SINGLE_YEAR = Pattern.compile("(?<!\\d)((?:19|20)\\d{2})(?!\\d)");
 
     private static final Pattern DEGREE = Pattern.compile(
@@ -58,7 +58,7 @@ public class CvTextParser {
                     + "|associate degree|certificate in)");
     private static final Pattern INSTITUTION = Pattern.compile(
             "(?i)\\b(university|college|campus|school|institute|academy|polytechnic)\\b");
-    private static final Pattern ROLE_COMPANY = Pattern.compile("^(.+?)(?:\\s*[,|]\\s+|\\s+(?:at|@|-|–|—)\\s+)(.+)$");
+    private static final Pattern ROLE_COMPANY = Pattern.compile("^(.+?)(?:\\s*[,|]\\s+|\\s+(?:at|@|-|–| - )\\s+)(.+)$");
 
     private static final Map<CvSectionType, List<String>> HEADINGS = headings();
 
@@ -393,7 +393,7 @@ public class CvTextParser {
                 }
             }
             if (!url.isEmpty()) {
-                title = title.replace(url, "").replaceAll("[\\s|:–—-]+$", "").strip();
+                title = title.replace(url, "").replaceAll("[\\s|:\u2013\u2014-]+$", "").strip();
             }
             items.addObject()
                     .put("id", id())
@@ -506,7 +506,7 @@ public class CvTextParser {
                     dateLine = (dateLine.substring(0, year.start()) + " " + dateLine.substring(year.end())).strip();
                 }
             }
-            dateLine = dateLine.replaceAll("^[\\s|,()–—-]+|[\\s|,()–—-]+$", "");
+            dateLine = dateLine.replaceAll("^[\\s|,()\u2013\u2014-]+|[\\s|,()\u2013\u2014-]+$", "");
             if (!dateLine.isBlank()) {
                 titles.add(dateLine);
             }
