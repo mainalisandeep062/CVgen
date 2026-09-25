@@ -120,3 +120,7 @@ app:
     max-content-bytes: ${CV_MAX_CONTENT_BYTES:262144}
     default-template-key: ${CV_DEFAULT_TEMPLATE_KEY:classic}
     default-locale: ${CV_DEFAULT_LOCALE:en}
+  admin:
+    # Comma-separated. Email-verified accounts listed here are promoted to ADMIN at startup and at their
+    # next login. The only way the first admin comes to exist; empty means no admin is created.
+    bootstrap-emails: ${ADMIN_BOOTSTRAP_EMAILS:}

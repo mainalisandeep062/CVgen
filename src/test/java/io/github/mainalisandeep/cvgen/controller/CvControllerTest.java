@@ -10,7 +10,8 @@ import io.github.mainalisandeep.cvgen.dto.CvUpdateRequestDto;
 import io.github.mainalisandeep.cvgen.entity.Cv;
 import io.github.mainalisandeep.cvgen.entity.User;
 import io.github.mainalisandeep.cvgen.enums.CvStatus;
-import io.github.mainalisandeep.cvgen.enums.CvTemplate;
+import io.github.mainalisandeep.cvgen.enums.CvTemplateLayout;
+import io.github.mainalisandeep.cvgen.repository.CvTemplateRepository;
 import io.github.mainalisandeep.cvgen.repository.CvRepository;
 import io.github.mainalisandeep.cvgen.repository.UserRepository;
 import io.github.mainalisandeep.cvgen.security.UserPrincipal;
@@ -70,6 +71,9 @@ class CvControllerTest extends PostgresContainerSupport {
 
     @Autowired
     private CvProperties cvProperties;
+
+    @Autowired
+    private CvTemplateRepository cvTemplateRepository;
 
     private User owner;
     private User intruder;
@@ -241,7 +245,7 @@ class CvControllerTest extends PostgresContainerSupport {
     void createWithKnownTemplate() throws Exception {
         var request = CvCreateRequestDto.builder()
                 .title("Classic")
-                .templateKey(" " + CvTemplate.CLASSIC.getKey() + " ")
+                .templateKey(" " + CvTemplateLayout.CLASSIC.getKey() + " ")
                 .build();
 
         mockMvc.perform(post("/api/cvs")
@@ -249,20 +253,23 @@ class CvControllerTest extends PostgresContainerSupport {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.templateKey").value(CvTemplate.CLASSIC.getKey()));
+                .andExpect(jsonPath("$.data.templateKey").value(CvTemplateLayout.CLASSIC.getKey()));
     }
 
     // --- Templates ---
 
     @Test
-    @DisplayName("The template list carries every registry entry, the default among them")
+    @DisplayName("The template list carries every active template, the default among them")
     void listTemplates() throws Exception {
+        int activeTemplates = cvTemplateRepository.findAllByActiveTrueOrderBySortOrderAscNameAsc().size();
+
         mockMvc.perform(get("/api/templates").with(asUser(owner)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(true))
-                .andExpect(jsonPath("$.data.length()").value(CvTemplate.values().length))
+                .andExpect(jsonPath("$.data.length()").value(activeTemplates))
                 .andExpect(jsonPath("$.data[0].key").value(cvProperties.getDefaultTemplateKey()))
-                .andExpect(jsonPath("$.data[0].name").value(CvTemplate.CLASSIC.getDisplayName()))
+                .andExpect(jsonPath("$.data[0].name").value(CvTemplateLayout.CLASSIC.getDisplayName()))
+                .andExpect(jsonPath("$.data[0].layout").value(CvTemplateLayout.CLASSIC.getKey()))
                 .andExpect(jsonPath("$.data[0].supportedSections[1]").value("EXPERIENCE"));
     }
 

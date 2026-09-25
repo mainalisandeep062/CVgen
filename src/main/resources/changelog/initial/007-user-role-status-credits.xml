@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+        What the admin module needs to know about a user: what they may do (role), whether they
+        may do anything at all (status), their credit balance and when they last signed in.
+
+        role / status are columns rather than a roles table: there are exactly two of each, the
+        JWT carries the role as authorities, and a join per request buys nothing. Every existing
+        account becomes USER / ACTIVE; the first admin comes from app.admin.bootstrap-emails, never
+        from a migration, so no environment ships with a hardcoded administrator.
+
+        credit_balance is denormalised from credit_transactions (009) so a balance read is one
+        column, not a SUM over history. The ledger service is the only writer and locks the row;
+        the CHECK is the backstop against anything that reaches the column another way.
+    -->
+    <changeSet id="007-user-role-status-credits" author="sandeep mainali">
+
+        <addColumn tableName="users">
+            <!-- UserRole: USER, ADMIN. -->
+            <column name="role" type="VARCHAR(16)" defaultValue="USER">
+                <constraints nullable="false"/>
+            </column>
+            <!-- UserStatus: ACTIVE, SUSPENDED. -->
+            <column name="status" type="VARCHAR(16)" defaultValue="ACTIVE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="credit_balance" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Set when tokens are issued (login, OTP verify, OAuth exchange), not on refresh. -->
+            <column name="last_login_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <sql>
+            ALTER TABLE users ADD CONSTRAINT chk_users_role CHECK (role IN ('USER', 'ADMIN'));
+            ALTER TABLE users ADD CONSTRAINT chk_users_status CHECK (status IN ('ACTIVE', 'SUSPENDED'));
+            ALTER TABLE users ADD CONSTRAINT chk_users_credit_balance CHECK (credit_balance &gt;= 0);
+        </sql>
+
+        <rollback>
+            <sql>
+                ALTER TABLE users DROP CONSTRAINT IF EXISTS chk_users_credit_balance;
+                ALTER TABLE users DROP CONSTRAINT IF EXISTS chk_users_status;
+                ALTER TABLE users DROP CONSTRAINT IF EXISTS chk_users_role;
+            </sql>
+            <dropColumn tableName="users" columnName="last_login_at"/>
+            <dropColumn tableName="users" columnName="credit_balance"/>
+            <dropColumn tableName="users" columnName="status"/>
+            <dropColumn tableName="users" columnName="role"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

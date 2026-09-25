@@ -2,6 +2,7 @@ package io.github.mainalisandeep.cvgen.repository;
 
 import io.github.mainalisandeep.cvgen.entity.TrustedDevice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,4 +17,9 @@ public interface TrustedDeviceRepository extends JpaRepository<TrustedDevice, UU
     /** Non-expired devices of one user - the only candidates worth hash-matching. */
     @Query("SELECT d FROM TrustedDevice d WHERE d.user.id = :userId AND d.expiresAt > :now")
     List<TrustedDevice> findActiveByUserId(@Param("userId") UUID userId, @Param("now") Instant now);
+
+    /** fk_trusted_devices_user_id does not cascade, so account deletion removes these first. */
+    @Modifying
+    @Query("DELETE FROM TrustedDevice d WHERE d.user.id = :userId")
+    int deleteAllByUserId(@Param("userId") UUID userId);
 }

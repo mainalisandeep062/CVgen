@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+        Templates move from an enum to a table so admins can manage them without a deploy.
+
+        The enum does not disappear, it is renamed CvTemplateLayout: a layout is the code that draws
+        a CV, a template row is a branded variant of exactly one layout (name, accent colour, which
+        sections it shows, pricing). The original reason for the enum - a template nobody can render
+        must be impossible - still holds, because the service refuses a row whose layout is unknown or
+        whose sections the layout cannot draw.
+
+        supported_sections is jsonb rather than a join table: it is always read and written whole,
+        never queried by element, and it is a subset of a list that lives in code.
+
+        The column is template_key, not key, to match cvs.template_key and to stay clear of KEY as a
+        keyword in JPQL.
+    -->
+    <changeSet id="008-create-cv-templates-table" author="sandeep mainali">
+
+        <createTable tableName="cv_templates">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <!-- What cvs.template_key stores. Immutable once created, so a stored CV is never orphaned. -->
+            <column name="template_key" type="VARCHAR(64)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_cv_templates_template_key"/>
+            </column>
+
+            <column name="name" type="VARCHAR(120)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="description" type="VARCHAR(500)"/>
+
+            <!-- CvTemplateLayout key: the renderer this row is a variant of. -->
+            <column name="layout" type="VARCHAR(64)">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- #RRGGBB, or null for the layout's own colour. -->
+            <column name="accent_color" type="VARCHAR(7)"/>
+
+            <column name="supported_sections" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="premium" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="credit_cost" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- Inactive rows are hidden from the picker; CVs already using them keep rendering. -->
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="sort_order" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>
+            ALTER TABLE cv_templates ADD CONSTRAINT chk_cv_templates_sections_array CHECK (jsonb_typeof(supported_sections) = 'array');
+            ALTER TABLE cv_templates ADD CONSTRAINT chk_cv_templates_credit_cost CHECK (credit_cost BETWEEN 0 AND 1000);
+            ALTER TABLE cv_templates ADD CONSTRAINT chk_cv_templates_free_costs_nothing CHECK (premium OR credit_cost = 0);
+        </sql>
+
+        <!--
+            The row every existing CV already points at. Values mirror what the enum constant carried,
+            so the picker looks the same the moment this runs.
+        -->
+        <sql>
+            INSERT INTO cv_templates (id, template_key, name, description, layout, accent_color, supported_sections,
+                                      premium, credit_cost, active, sort_order, created_at, updated_at)
+            VALUES (gen_random_uuid(), 'classic', 'Classic',
+                    'Single column with clear section rules. Reads cleanly through any applicant tracking system.',
+                    'classic', '#4F46E5',
+                    '["SUMMARY", "EXPERIENCE", "EDUCATION", "SKILLS", "PROJECTS", "LANGUAGES"]'::jsonb,
+                    false, 0, true, 0, now(), now())
+        </sql>
+
+        <!--
+            Backstop for the in-use check on delete. RESTRICT rather than CASCADE or SET NULL: deleting a
+            template must never delete a CV or leave one pointing at nothing. Every existing row is
+            'classic' - the enum refused anything else - so the constraint applies cleanly.
+        -->
+        <addForeignKeyConstraint baseTableName="cvs"
+                                 baseColumnNames="template_key"
+                                 referencedTableName="cv_templates"
+                                 referencedColumnNames="template_key"
+                                 constraintName="fk_cvs_template_key"
+                                 onDelete="RESTRICT"/>
+
+        <createIndex tableName="cvs" indexName="idx_cvs_template_key">
+            <column name="template_key"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex tableName="cvs" indexName="idx_cvs_template_key"/>
+            <dropForeignKeyConstraint baseTableName="cvs" constraintName="fk_cvs_template_key"/>
+            <dropTable tableName="cv_templates"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

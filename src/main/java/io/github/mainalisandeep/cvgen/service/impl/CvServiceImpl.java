@@ -95,7 +95,10 @@ public class CvServiceImpl implements CvService {
         if (request.getTitle() != null) {
             cv.setTitle(request.getTitle().trim());
         }
-        if (request.getTemplateKey() != null) {
+        // Re-sending the key the CV already has is not a switch, so it is accepted even when an admin has
+        // since deactivated that template: the editor round-trips every field, and renaming a CV must not
+        // fail because its template was retired. Moving to a different key needs an active template.
+        if (request.getTemplateKey() != null && !request.getTemplateKey().trim().equals(cv.getTemplateKey())) {
             cv.setTemplateKey(cvTemplateService.requireKnown(request.getTemplateKey()));
         }
         if (request.getLocale() != null) {

@@ -5,16 +5,19 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The template registry: every look a CV can be rendered with.
+ * The layouts a CV can be drawn with: code-level renderers, one constant per renderer.
  * <p>
- * An enum rather than a table on purpose. Templates ship with the code that draws them, so a row
- * nobody can render is a bug this shape makes impossible; a table earns its place only once users
- * author their own.
+ * Templates used to be this enum. They are now rows in {@code cv_templates}, managed by admins, and
+ * each row is a branded variant of exactly one layout - its name, accent colour, pricing and which of
+ * the layout's sections it shows. The split keeps the original guarantee: a template nobody can render
+ * is still impossible, because a row is refused unless its layout exists here and its sections are a
+ * subset of {@link #getSupportedSections()}. Adding a layout remains a code change; adding a template
+ * does not.
  * <p>
- * {@link #getKey()} is what {@code cvs.template_key} stores, not {@link #name()}, so renaming a
- * constant never orphans a stored CV.
+ * {@link #getKey()} is what {@code cv_templates.layout} stores, not {@link #name()}, so renaming a
+ * constant never orphans a stored template.
  */
-public enum CvTemplate {
+public enum CvTemplateLayout {
 
     CLASSIC(
             "classic",
@@ -35,7 +38,7 @@ public enum CvTemplate {
     private final String description;
     private final List<CvSectionType> supportedSections;
 
-    CvTemplate(String key, String displayName, String description, List<CvSectionType> supportedSections) {
+    CvTemplateLayout(String key, String displayName, String description, List<CvSectionType> supportedSections) {
         this.key = key;
         this.displayName = displayName;
         this.description = description;
@@ -54,14 +57,14 @@ public enum CvTemplate {
         return description;
     }
 
-    /** Section types this template draws. Anything else in the document is kept but not rendered. */
+    /** Section types this layout can draw. Anything else in the document is kept but not rendered. */
     public List<CvSectionType> getSupportedSections() {
         return supportedSections;
     }
 
-    public static Optional<CvTemplate> fromKey(String key) {
+    public static Optional<CvTemplateLayout> fromKey(String key) {
         return Arrays.stream(values())
-                .filter(template -> template.key.equals(key))
+                .filter(layout -> layout.key.equals(key))
                 .findFirst();
     }
 }

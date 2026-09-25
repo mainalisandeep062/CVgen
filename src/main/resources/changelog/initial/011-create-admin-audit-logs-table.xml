@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+        One row per admin mutation, written in the same transaction as the change it describes, so
+        there is never a change without its entry or an entry for a change that rolled back.
+
+        actor_id is SET NULL and actor_email is a snapshot: the log has to outlive the admin who wrote
+        it. target_id carries no foreign key on purpose - it points at users, templates, packs,
+        transactions or notifications depending on target_type, and the entry must survive the target
+        being deleted, which is often the very action it records.
+    -->
+    <changeSet id="011-create-admin-audit-logs-table" author="sandeep mainali">
+
+        <createTable tableName="admin_audit_logs">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="actor_id" type="UUID"/>
+            <column name="actor_email" type="VARCHAR(255)"/>
+            <!-- AdminAction. -->
+            <column name="action" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- AdminTargetType: USER, TEMPLATE, CREDIT_PACK, TRANSACTION, NOTIFICATION. -->
+            <column name="target_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_id" type="UUID"/>
+            <column name="summary" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Structured before/after values; shape varies by action. -->
+            <column name="details" type="JSONB"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="admin_audit_logs"
+                                 baseColumnNames="actor_id"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_admin_audit_logs_actor"
+                                 onDelete="SET NULL"/>
+
+        <createIndex tableName="admin_audit_logs" indexName="idx_admin_audit_logs_created_at">
+            <column name="created_at" descending="true"/>
+        </createIndex>
+
+        <createIndex tableName="admin_audit_logs" indexName="idx_admin_audit_logs_action_created_at">
+            <column name="action"/>
+            <column name="created_at" descending="true"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="admin_audit_logs"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

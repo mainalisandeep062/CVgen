@@ -46,7 +46,7 @@ public class Cv extends BaseEntity {
     @Column(name = "title", nullable = false, length = 255)
     private String title;
 
-    /** Key into {@link io.github.mainalisandeep.cvgen.enums.CvTemplate}, checked on every write. */
+    /** Key of a {@link CvTemplate} row, checked on every write and backed by {@code fk_cvs_template_key}. */
     @Column(name = "template_key", nullable = false, length = 64)
     private String templateKey;
 

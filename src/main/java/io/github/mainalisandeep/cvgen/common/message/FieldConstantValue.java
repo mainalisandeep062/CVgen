@@ -22,4 +22,17 @@ public final class FieldConstantValue {
     public static final String CV = "CV";
     public static final String CV_LIST = "CVs";
     public static final String CV_TEMPLATES = "CV templates";
+    public static final String CV_TEMPLATE = "CV template";
+    public static final String TEMPLATE_LAYOUTS = "Template layouts";
+    public static final String USERS = "Users";
+    public static final String ANALYTICS_OVERVIEW = "Analytics overview";
+    public static final String CREDIT_PACK = "Credit pack";
+    public static final String CREDIT_PACKS = "Credit packs";
+    public static final String CREDIT_TRANSACTION = "Transaction";
+    public static final String CREDIT_TRANSACTIONS = "Transactions";
+    public static final String BILLING_SUMMARY = "Billing summary";
+    public static final String BILLING_ACCOUNT = "Billing account";
+    public static final String NOTIFICATION = "Notification";
+    public static final String NOTIFICATIONS = "Notifications";
+    public static final String AUDIT_LOGS = "Audit logs";
 }

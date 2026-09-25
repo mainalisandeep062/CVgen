@@ -1,5 +1,7 @@
 package io.github.mainalisandeep.cvgen.dto;
 
+import io.github.mainalisandeep.cvgen.enums.UserRole;
+import io.github.mainalisandeep.cvgen.enums.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -31,4 +33,10 @@ public class UserResponseDto {
 
     @Builder.Default
     private List<String> providers = new ArrayList<>();
+
+    private UserRole role;
+
+    private UserStatus status;
+
+    private Integer creditBalance;
 }

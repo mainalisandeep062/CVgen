@@ -16,6 +16,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
@@ -50,6 +51,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<GlobalApiResponse<Object>> handleConstraintViolation(ConstraintViolationException exception) {
         List<String> errors = exception.getConstraintViolations().stream()
                 .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
+                .toList();
+        return build(HttpStatus.BAD_REQUEST, customMessageSource.get(ErrorConstantValue.VALIDATION_FAILED), errors);
+    }
+
+    /**
+     * Constraints on {@code @RequestParam} / {@code @PathVariable} ({@code days} on the dashboards).
+     * Spring validates those itself and raises this rather than {@link ConstraintViolationException};
+     * without a handler it would fall through to {@link #handleUnexpected} as a 500.
+     */
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<GlobalApiResponse<Object>> handleMethodValidation(HandlerMethodValidationException exception) {
+        List<String> errors = exception.getAllValidationResults().stream()
+                .flatMap(result -> result.getResolvableErrors().stream()
+                        .map(error -> result.getMethodParameter().getParameterName() + ": " + error.getDefaultMessage()))
                 .toList();
         return build(HttpStatus.BAD_REQUEST, customMessageSource.get(ErrorConstantValue.VALIDATION_FAILED), errors);
     }
