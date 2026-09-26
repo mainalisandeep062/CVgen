@@ -1,0 +1,198 @@
+# Terms the match analysis recognises in a job description.
+#
+# One term per line: Canonical|alias|alias. Matching is case-insensitive and on word boundaries,
+# so "Java" does not match inside "JavaScript". The canonical spelling is what the user sees.
+# A leading ~ marks a soft skill: counted for coverage, not for the skills-match bar.
+# A term starting with = matches case-sensitively - for names that are also plain English
+# ("Go", "Spring", "Excel") or single letters ("R").
+# Lines starting with # are comments.
+
+# --- Languages
+Java
+JavaScript|=JS|ECMAScript|ES6
+TypeScript|=TS
+Python
+Kotlin
+=Go|Golang
+=Rust
+C++|CPP
+C#|CSharp
+.NET|dotnet|ASP.NET
+PHP
+=Ruby
+=Swift
+Objective-C
+Scala
+=Dart
+=R
+SQL
+PL/SQL
+Bash|Shell scripting
+PowerShell
+HTML|HTML5
+CSS|CSS3
+
+# --- Backend frameworks
+Spring Boot|SpringBoot
+=Spring|Spring Framework
+Spring Security
+Spring Cloud
+Hibernate
+JPA
+Node.js|NodeJS|=Node
+=Express|Express.js|ExpressJS
+NestJS
+Django
+=Flask
+FastAPI
+Laravel
+Ruby on Rails|=Rails
+Quarkus
+Micronaut
+
+# --- Frontend
+React|React.js|ReactJS
+React Native
+Next.js|NextJS
+Angular
+Vue|Vue.js|VueJS
+Nuxt
+Svelte
+Redux
+Tailwind|Tailwind CSS|TailwindCSS
+Sass|SCSS
+Bootstrap
+Webpack
+Vite
+jQuery
+Flutter
+
+# --- Data stores
+PostgreSQL|Postgres
+MySQL
+MariaDB
+=Oracle
+SQL Server|MSSQL
+MongoDB|Mongo
+Redis
+Elasticsearch|Elastic Search|OpenSearch
+Cassandra
+DynamoDB
+SQLite
+Firebase
+Supabase
+Prisma
+Liquibase
+Flyway
+
+# --- Messaging and integration
+Kafka|Apache Kafka
+RabbitMQ
+ActiveMQ
+REST|REST API|REST APIs|RESTful|RESTful APIs
+GraphQL
+gRPC
+SOAP
+WebSockets|WebSocket
+Microservices|Microservice
+OAuth|OAuth2|OAuth 2.0
+OpenID Connect|OIDC
+JWT
+
+# --- Cloud and ops
+AWS|Amazon Web Services
+Azure|Microsoft Azure
+GCP|Google Cloud|Google Cloud Platform
+Docker
+Kubernetes|K8s
+=Helm
+Terraform
+Ansible
+Jenkins
+GitHub Actions
+GitLab CI
+CI/CD|CI CD|Continuous Integration|Continuous Delivery
+Linux
+Nginx
+Prometheus
+Grafana
+Serverless
+=Lambda|AWS Lambda
+S3|Amazon S3
+
+# --- Tooling and practice
+Git
+GitHub
+GitLab
+Bitbucket
+Maven
+Gradle
+npm
+Jira
+Confluence
+Figma
+Postman
+Swagger|OpenAPI
+JUnit
+Mockito
+Testcontainers
+Jest
+Cypress
+Playwright
+Selenium
+Unit Testing|Unit Tests
+Integration Testing|Integration Tests
+TDD|Test Driven Development|Test-Driven Development
+Agile
+Scrum
+Kanban
+DevOps
+System Design
+Design Patterns
+Data Structures
+Algorithms
+OOP|Object-Oriented Programming|Object Oriented Programming
+Clean Code
+Code Review|Code Reviews
+Distributed Systems
+Performance Tuning
+Application Security|Web Security|OWASP
+
+# --- Data and ML
+Machine Learning|=ML
+Deep Learning
+Data Analysis|Data Analytics
+Pandas
+NumPy
+TensorFlow
+PyTorch
+scikit-learn
+Power BI|PowerBI
+Tableau
+=Excel|Microsoft Excel
+ETL
+=Spark|Apache Spark
+Airflow
+
+# --- Mobile
+Android
+iOS
+
+# --- Design and product
+UI/UX|=UX|UI Design|User Experience
+Adobe XD
+Photoshop
+SEO
+Digital Marketing
+
+# --- Soft skills
+~Leadership
+~Communication|Communication Skills
+~Mentoring|Mentorship
+~Problem Solving|Problem-Solving
+~Teamwork|Team Player|Collaboration
+~Time Management
+~Stakeholder Management
+~Critical Thinking
+~Ownership
+~Attention to Detail

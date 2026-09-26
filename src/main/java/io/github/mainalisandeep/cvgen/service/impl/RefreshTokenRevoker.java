@@ -16,7 +16,7 @@ import java.util.UUID;
  *
  * <p>Reuse detection revokes a family and then rejects the request with an
  * {@link io.github.mainalisandeep.cvgen.common.exception.UnauthorizedException}. That is a
- * {@code RuntimeException}, so the caller's transaction rolls back — including the revocation, which
+ * {@code RuntimeException}, so the caller's transaction rolls back - including the revocation, which
  * left the thief's token live and no {@code REUSE_DETECTED} row behind. {@code REQUIRES_NEW} commits
  * the revocation in its own transaction before the exception is thrown.
  *
@@ -33,7 +33,7 @@ public class RefreshTokenRevoker {
     /**
      * Kills the family a replayed token belongs to, keeping the two roles distinguishable in the audit
      * trail: {@code REUSE_DETECTED} marks the token that was actually presented twice, while its still
-     * active siblings — the thief's token among them — get {@link RevocationReason#FAMILY_COMPROMISED}.
+     * active siblings - the thief's token among them - get {@link RevocationReason#FAMILY_COMPROMISED}.
      *
      * <p>Rows revoked earlier for their own reason ({@code ROTATED}, {@code LOGOUT}) keep it: they were
      * already dead before the replay, and overwriting them would erase the chain's history.

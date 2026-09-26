@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<!--
+    Classic layout: one column, ruled section headings. Reads cleanly through any applicant
+    tracking system because the text order on the page is the reading order.
+
+    Must stay well-formed XHTML - openhtmltopdf parses it as XML. Every value is written with
+    th:text, which escapes it; never switch a field to th:utext, that is how CV content becomes
+    markup. The only attribute fed from data is href, and CvDocumentReader lets through http(s)
+    only.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" th:lang="${locale}">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="${cv.fullName()}">CV</title>
+    <style th:inline="css">
+        @page {
+            size: A4;
+            margin: 16mm 17mm 16mm 17mm;
+        }
+
+        body {
+            font-family: 'Noto Sans', sans-serif;
+            font-size: 9.6pt;
+            line-height: 1.42;
+            color: #1f2330;
+            margin: 0;
+        }
+
+        .header {
+            text-align: center;
+        }
+
+        .name {
+            font-size: 20pt;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .headline {
+            font-size: 10.5pt;
+            font-weight: bold;
+            color: [[${accent}]];
+            margin: 2pt 0 0 0;
+        }
+
+        .contact {
+            font-size: 8.8pt;
+            color: #4a4f60;
+            margin: 5pt 0 0 0;
+        }
+
+        .section {
+            margin-top: 12pt;
+        }
+
+        .section-title {
+            font-size: 9.4pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.9pt;
+            color: [[${accent}]];
+            border-bottom: 0.8pt solid [[${accent}]];
+            padding-bottom: 2pt;
+            margin: 0 0 6pt 0;
+        }
+
+        .item {
+            margin-bottom: 7pt;
+            page-break-inside: avoid;
+        }
+
+        .row {
+            width: 100%;
+        }
+
+        .heading {
+            font-weight: bold;
+        }
+
+        .dates {
+            float: right;
+            color: #4a4f60;
+            font-size: 8.8pt;
+        }
+
+        .sub {
+            color: #4a4f60;
+        }
+
+        .body {
+            white-space: pre-line;
+            margin: 2pt 0 0 0;
+        }
+
+        ul.bullets {
+            margin: 2pt 0 0 0;
+            padding-left: 13pt;
+        }
+
+        ul.bullets li {
+            margin-bottom: 1pt;
+        }
+
+        .skills-group {
+            margin-bottom: 3pt;
+        }
+
+        a {
+            color: #1f2330;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <p class="name" th:text="${cv.fullName().isBlank()} ? 'Your Name' : ${cv.fullName()}">Your Name</p>
+    <p class="headline" th:if="${!cv.headline().isBlank()}" th:text="${cv.headline()}">Title</p>
+    <p class="contact" th:if="${!cv.contact().isEmpty()}" th:text="${#strings.listJoin(cv.contact(), '  •  ')}">contact</p>
+</div>
+
+<div class="section" th:each="section : ${cv.sections()}">
+    <p class="section-title" th:text="${section.title()}">Section</p>
+
+    <th:block th:switch="${section.type()}">
+
+        <th:block th:case="'SUMMARY'">
+            <p class="body" th:each="item : ${section.items()}" th:text="${item.body()}">summary</p>
+        </th:block>
+
+        <th:block th:case="'SKILLS'">
+            <div class="skills-group" th:each="item : ${section.items()}">
+                <span class="heading" th:if="${!item.heading().isBlank()}" th:text="${item.heading() + ': '}">Group: </span>
+                <span th:text="${#strings.listJoin(item.keywords(), ', ')}">skills</span>
+            </div>
+        </th:block>
+
+        <th:block th:case="'LANGUAGES'">
+            <p class="body" th:text="${#strings.listJoin(section.items().![heading()], ', ')}">languages</p>
+        </th:block>
+
+        <th:block th:case="*">
+            <div class="item" th:each="item : ${section.items()}">
+                <div class="row">
+                    <span class="dates" th:if="${!item.dates().isBlank()}" th:text="${item.dates()}">dates</span>
+                    <span class="heading" th:text="${item.heading()}">heading</span>
+                    <span class="sub" th:if="${!item.subheading().isBlank()}" th:text="${', ' + item.subheading()}">, sub</span>
+                </div>
+                <div th:if="${!item.url().isBlank()}">
+                    <a th:href="${item.url()}" th:text="${item.url()}">url</a>
+                </div>
+                <p class="body" th:if="${item.lines().size() == 1}" th:text="${item.lines().get(0)}">body</p>
+                <ul class="bullets" th:if="${item.lines().size() > 1}">
+                    <li th:each="line : ${item.lines()}" th:text="${line}">line</li>
+                </ul>
+            </div>
+        </th:block>
+
+    </th:block>
+</div>
+
+</body>
+</html>

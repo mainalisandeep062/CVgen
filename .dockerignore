@@ -1,0 +1,19 @@
+# Secrets reach the container as env vars from compose, never baked into the image.
+# DotenvEnvironmentPostProcessor ranks a .env above OS env vars, so shipping one would
+# also override the compose DATABASE_URL.
+.env
+.env.*
+
+target/
+storage/
+.git/
+.idea/
+.vscode/
+.claude/
+.mvn/
+mvnw
+mvnw.cmd
+*.iml
+HELP.md
+Dockerfile
+docker-compose.yml

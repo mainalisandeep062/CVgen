@@ -25,7 +25,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String token = resolveToken(request);
         // A valid Bearer token always wins, even over an authentication restored from the
-        // HTTP session (e.g. a lingering OAuth2 login) — the API is token-driven.
+        // HTTP session (e.g. a lingering OAuth2 login) - the API is token-driven.
         if (token != null && jwtTokenProvider.validateAccessToken(token)) {
             SecurityContextHolder.getContext().setAuthentication(jwtTokenProvider.getAuthentication(token));
         }

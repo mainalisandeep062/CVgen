@@ -124,7 +124,7 @@ class TrustedDeviceServiceTest extends PostgresContainerSupport {
     }
 
     @Test
-    @DisplayName("AC7: Per-device isolation — expiring one device leaves the other valid")
+    @DisplayName("AC7: Per-device isolation: expiring one device leaves the other valid")
     void perDeviceIsolation() {
         String device1Token = trustedDeviceService.remember(testUser);
         String device2Token = trustedDeviceService.remember(testUser);

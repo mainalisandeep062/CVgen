@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * <p>Deliberately <b>not</b> {@code @Transactional}. Reuse detection revokes the family in a
  * {@code REQUIRES_NEW} transaction and then throws, so the whole point is which writes survive a
- * commit boundary — a test-managed transaction wrapping the request would hide that. Cleanup is
+ * commit boundary - a test-managed transaction wrapping the request would hide that. Cleanup is
  * therefore explicit in {@link #setUp()}.
  */
 @SpringBootTest

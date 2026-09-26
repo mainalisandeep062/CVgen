@@ -33,7 +33,7 @@ public class RefreshToken extends BaseEntity {
      * <p>
      * Not the primary key: {@code BaseEntity} has Hibernate generate the id, and its
      * {@code UuidGenerator} discards an assigned one, so the id cannot be known before the
-     * row is written — while the JWT has to carry it before that.
+     * row is written - while the JWT has to carry it before that.
      */
     @Column(name = "jti", nullable = false, unique = true, updatable = false)
     private UUID jti;

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+        A premium template a user has paid for, once, for good.
+
+        Written in the same transaction as the SPEND ledger row it points at. The unique pair is the
+        backstop against paying twice: two racing unlocks both reach the insert, and the loser rolls
+        back together with its charge.
+    -->
+    <changeSet id="013-create-template-unlocks-table" author="sandeep mainali">
+
+        <createTable tableName="template_unlocks">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="template_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <!-- What was paid, as a snapshot: the admin may reprice the template later. -->
+            <column name="credits" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="transaction_id" type="UUID"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="template_unlocks" columnNames="user_id, template_id"
+                             constraintName="uq_template_unlocks_user_template"/>
+
+        <addForeignKeyConstraint baseTableName="template_unlocks"
+                                 baseColumnNames="user_id"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_template_unlocks_user"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="template_unlocks"
+                                 baseColumnNames="template_id"
+                                 referencedTableName="cv_templates"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_template_unlocks_template"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="template_unlocks"
+                                 baseColumnNames="transaction_id"
+                                 referencedTableName="credit_transactions"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_template_unlocks_transaction"
+                                 onDelete="SET NULL"/>
+
+        <rollback>
+            <dropTable tableName="template_unlocks"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

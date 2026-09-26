@@ -25,6 +25,11 @@ public final class SuccessResponseConstant {
     public static final String CV_CREATED = "success.cv.created";
     public static final String CV_UPDATED = "success.cv.updated";
     public static final String CV_DELETED = "success.cv.deleted";
+    public static final String CV_ANALYZED = "success.cv.analyzed";
+    public static final String CV_IMPORTED = "success.cv.imported";
+    public static final String CHECKOUT_STARTED = "success.checkout.started";
+    public static final String PAYMENT_CONFIRMED = "success.payment.confirmed";
+    public static final String TEMPLATE_UNLOCKED = "success.template.unlocked";
 
     public static final String USER_UPDATED = "success.user.updated";
     public static final String USER_DELETED = "success.user.deleted";
